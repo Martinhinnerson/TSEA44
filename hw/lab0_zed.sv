@@ -18,8 +18,6 @@ module lab0_zed(
     reg[2:0] rx_state;
     reg rx_i_sync;
 
-    parameter word_length = 3'd8; // word lenght used by the uart protocol
-
     parameter rx_idle       = 3'd0;
     parameter rx_start      = 3'd1;
     parameter rx_read_bit   = 3'd2;
@@ -31,22 +29,18 @@ module lab0_zed(
     //Transmitter parameters
     reg[7:0] tx_shift_reg;
     reg[7:0] tx_hold_reg;
-    reg[3:0] tx_counter;
+    reg[2:0] tx_bitCtr;
+    reg[3:0] tx_delayCtr;
     reg[2:0] tx_state;
 
-    parameter tx_counter_start = 4'd8;
-
-    parameter tx_idle   = 3'd0;
-    parameter tx_start  = 3'd1;
-    parameter tx_send   = 3'd2;
-    parameter tx_stop   = 3'd3;
-
-    wire[7:0] ascii_code;
-    wire c_tx_shift;
-    wire c_tx_count;
+    parameter tx_idle       = 3'd0;
+    parameter tx_start      = 3'd1;
+    parameter tx_send_bit   = 3'd2;
+    parameter tx_next       = 3'd3;
+    parameter tx_stop       = 3'd4;
 
     //Other parameters
-    wire clk_baud;
+    parameter word_length = 3'd8; // word lenght used by the uart protocol
 
     parameter CLK_FREQ  = 100000000;
     parameter BAUDRATE  = 115200;
@@ -59,13 +53,11 @@ module lab0_zed(
     end
 
     always @(posedge clk_i) begin
-        led_o <= rx_hold_reg;
+        led_o[7:0] <= rx_hold_reg[7:0];
     end
 
-    /*** Baudrate generator ***/
-    always @(posedge clk_i)
-    begin
-        clk_baud <= #BAUDDELAY_HALF ~clk_baud;
+    always @(posedge clk_i) begin
+        tx_hold_reg[7:0] <= switch_i[7:0];
     end
 
     /*** Reciever module ***/
@@ -112,8 +104,7 @@ module lab0_zed(
                     if (rx_bitCtr == 3'b0) begin //If we have no bits left to read, go to stop
                         rx_delayCtr <= BAUDDELAY;
                         rx_state <= rx_stop;
-                    end
-                    else begin //If we have bits left go back to read_bit
+                    end else begin //If we have bits left go back to read_bit
                         rx_state <= rx_read_bit;
                         rx_bitCtr <= rx_bitCtr - 1'b1;
                     end
@@ -140,26 +131,55 @@ module lab0_zed(
     begin
         if (rst_i) begin
             tx_state <= tx_idle;
-            tx_counter <= tx_counter_start;
+            tx_bitCtr <= word_length;
+            tx_delayCtr <= BAUDDELAY_HALF;
             tx_shift_reg <= 0'd0;
-            tx_hold_reg <= 0'd0;
+            tx_o = 1'b1;
         end
         else
         begin
-            case(rx_state)
+            case(tx_state)
                 tx_idle: begin
-                    
+                    tx_delayCtr <= BAUDDELAY;
+                    tx_bitCtr <= word_length;
+                    tx_shift_reg <= tx_hold_reg;
+                    if (send_i) begin //If the send button is pushed
+                        tx_state <= tx_start;
+                    end
                 end
                 tx_start: begin
-                    
+                    tx_o <= 1'b0; //send start bit
+                    tx_state <= tx_send_bit;
                 end
-                tx_read: begin
-                    
+                tx_send_bit: begin
+                    if (tx_delayCtr == 0) begin //If we should send the next bit
+                        tx_state <= tx_next;
+                        tx_delayCtr <= BAUDDELAY;
+                        tx_o <= tx_shift_reg[0];
+                        tx_shift_reg[7:0] <= {0'b0, tx_shift_reg[7:1]};
+                    end else begin
+                        tx_delayCtr <= tx_delayCtr - 1'b1;
+                    end
+                end
+                tx_next: begin
+                    if (tx_bitCtr == 3'b0) begin //If we have no bits left to read, go to stop
+                        tx_delayCtr <= BAUDDELAY;
+                        tx_state <= tx_stop;
+                    end else begin //If we have bits left go back to read_bit
+                        tx_state <= tx_send_bit;
+                        tx_bitCtr <= tx_bitCtr - 1'b1;
+                    end
                 end
                 tx_stop: begin
-                    
+                    if (tx_delayCtr == 0) begin //send the stop bit
+                        if (!send_i)//only return after the button has been released
+                            tx_state <= tx_idle;
+                        tx_o = 1'b1;
+                    end else begin
+                        tx_delayCtr <= tx_delayCtr - 1'b1;
+                    end
                 end
-                default: tx0_state = tx_idle;
+                default: tx_state = tx_idle; //We should never be here
             endcase
         end
     end
