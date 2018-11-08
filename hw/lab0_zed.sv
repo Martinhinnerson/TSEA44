@@ -14,7 +14,7 @@ module lab0_zed(
     reg[7:0] rx_shift_reg;
     reg[7:0] rx_hold_reg;
     reg[2:0] rx_bitCtr;
-    reg[3:0] rx_delayCtr;
+    reg[9:0] rx_delayCtr;
     reg[2:0] rx_state;
     reg rx_i_sync;
 
@@ -30,7 +30,7 @@ module lab0_zed(
     reg[7:0] tx_shift_reg;
     reg[7:0] tx_hold_reg;
     reg[2:0] tx_bitCtr;
-    reg[3:0] tx_delayCtr;
+    reg[9:0] tx_delayCtr;
     reg[2:0] tx_state;
 
     parameter tx_idle       = 3'd0;
@@ -132,7 +132,7 @@ module lab0_zed(
         if (rst_i) begin
             tx_state <= tx_idle;
             tx_bitCtr <= word_length;
-            tx_delayCtr <= BAUDDELAY_HALF;
+            tx_delayCtr <= BAUDDELAY;
             tx_shift_reg <= 0'd0;
             tx_o = 1'b1;
         end
