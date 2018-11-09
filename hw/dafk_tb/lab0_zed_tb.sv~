@@ -1,8 +1,8 @@
 `timescale 1ns / 1ps
 
-// Testbench for lab 0
+// Testbench for lab 0 zedboard
 
-module lab0_tb();  
+module lab0_zed_tb();  
 
    reg clk_i;
    reg rst_i;
@@ -12,16 +12,22 @@ module lab0_tb();
    wire jumper;
    
    // Instantiate a UART
-   lab0 uart(.clk_i(clk_i), .rst_i(rst_i), .rx_i(jumper), .tx_o(jumper),  
+   lab0 lab0_zed(.clk_i(clk_i), .rst_i(rst_i), .rx_i(jumper), .tx_o(jumper),  
                 .led_o(led_o), .switch_i(switch_i), .send_i(send_i)) ;
    
-   always #12.5 clk_i = ~clk_i;  // 40 MHz clock
+   always #5 clk_i = ~clk_i;  // 100 MHz clock
    
    initial
      begin
         clk_i = 1'b0;
         switch_i = 8'b10011100;  // transmit/receive 'A'
         rst_i = 1'b1;
+        send_i = 1'b0;
+        #100 rst_i = 1'b0; 
+        #1000 send_i = 1'b1;
+        #1100 send_i = 1'b0;
+        #1000000
+        switch_i = 8'b10011100;  // transmit/receive 'A'
         send_i = 1'b0;
         #100 rst_i = 1'b0; 
         #1000 send_i = 1'b1;

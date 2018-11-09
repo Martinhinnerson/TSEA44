@@ -1,0 +1,146 @@
+Release 10.1 - Bitgen K.39 (lin64)
+Copyright (c) 1995-2008 Xilinx, Inc.  All rights reserved.
+Loading device for application Rf_Device from file '2v4000.nph' in environment
+/sw/xilinx/ise_10.1i-x86_64/ISE.
+   "lab0" is an NCD, version 3.2, device xc2v4000, package ff1152, speed -4
+This design is using the default stepping level (major silicon revision) for
+this device (0). Unless your design is targeted at devices of this stepping
+level, it is recommended that you explicitly specify the stepping level of the
+parts you will be using. This will allow the tools to take advantage of any
+available performance and functional enhancements for this device. The latest
+stepping level for this device is '1'. Additional information on "stepping
+level" is available at support.xilinx.com.
+
+Thu Nov  8 16:40:07 2018
+
+/sw/xilinx/ise_10.1i-x86_64/ISE/bin/lin64/unwrapped/bitgen -w -g StartupClk:JtagClk lab0.ncd lab0.bit 
+
+Summary of Bitgen Options:
++----------------------+----------------------+
+| Option Name          | Current Setting      |
++----------------------+----------------------+
+| Compress             | (Not Specified)*     |
++----------------------+----------------------+
+| Readback             | (Not Specified)*     |
++----------------------+----------------------+
+| CRC                  | Enable*              |
++----------------------+----------------------+
+| DebugBitstream       | No*                  |
++----------------------+----------------------+
+| ConfigRate           | 4*                   |
++----------------------+----------------------+
+| StartupClk           | JtagClk              |
++----------------------+----------------------+
+| DCMShutdown          | Disable*             |
++----------------------+----------------------+
+| DisableBandgap       | No*                  |
++----------------------+----------------------+
+| CclkPin              | Pullup*              |
++----------------------+----------------------+
+| DonePin              | Pullup*              |
++----------------------+----------------------+
+| HswapenPin           | Pullup*              |
++----------------------+----------------------+
+| M0Pin                | Pullup*              |
++----------------------+----------------------+
+| M1Pin                | Pullup*              |
++----------------------+----------------------+
+| M2Pin                | Pullup*              |
++----------------------+----------------------+
+| PowerdownPin         | Pullup*              |
++----------------------+----------------------+
+| ProgPin              | Pullup*              |
++----------------------+----------------------+
+| TckPin               | Pullup*              |
++----------------------+----------------------+
+| TdiPin               | Pullup*              |
++----------------------+----------------------+
+| TdoPin               | Pullup*              |
++----------------------+----------------------+
+| TmsPin               | Pullup*              |
++----------------------+----------------------+
+| UnusedPin            | Pulldown*            |
++----------------------+----------------------+
+| GWE_cycle            | 6*                   |
++----------------------+----------------------+
+| GTS_cycle            | 5*                   |
++----------------------+----------------------+
+| LCK_cycle            | NoWait*              |
++----------------------+----------------------+
+| Match_cycle          | NoWait               |
++----------------------+----------------------+
+| DONE_cycle           | 4*                   |
++----------------------+----------------------+
+| Persist              | No*                  |
++----------------------+----------------------+
+| DriveDone            | No*                  |
++----------------------+----------------------+
+| DonePipe             | No*                  |
++----------------------+----------------------+
+| Security             | None*                |
++----------------------+----------------------+
+| UserID               | 0xFFFFFFFF*          |
++----------------------+----------------------+
+| ActivateGclk         | No*                  |
++----------------------+----------------------+
+| ActiveReconfig       | No*                  |
++----------------------+----------------------+
+| PartialMask0         | (Not Specified)*     |
++----------------------+----------------------+
+| PartialMask1         | (Not Specified)*     |
++----------------------+----------------------+
+| PartialMask2         | (Not Specified)*     |
++----------------------+----------------------+
+| PartialGclk          | (Not Specified)*     |
++----------------------+----------------------+
+| PartialLeft          | (Not Specified)*     |
++----------------------+----------------------+
+| PartialRight         | (Not Specified)*     |
++----------------------+----------------------+
+| Encrypt              | No*                  |
++----------------------+----------------------+
+| Key0                 | pick*                |
++----------------------+----------------------+
+| Key1                 | pick*                |
++----------------------+----------------------+
+| Key2                 | pick*                |
++----------------------+----------------------+
+| Key3                 | pick*                |
++----------------------+----------------------+
+| Key4                 | pick*                |
++----------------------+----------------------+
+| Key5                 | pick*                |
++----------------------+----------------------+
+| Keyseq0              | M*                   |
++----------------------+----------------------+
+| Keyseq1              | M*                   |
++----------------------+----------------------+
+| Keyseq2              | M*                   |
++----------------------+----------------------+
+| Keyseq3              | M*                   |
++----------------------+----------------------+
+| Keyseq4              | M*                   |
++----------------------+----------------------+
+| Keyseq5              | M*                   |
++----------------------+----------------------+
+| KeyFile              | (Not Specified)*     |
++----------------------+----------------------+
+| StartKey             | 0*                   |
++----------------------+----------------------+
+| StartCBC             | pick*                |
++----------------------+----------------------+
+| FreezeDCI            | No*                  |
++----------------------+----------------------+
+| IEEE1532             | No*                  |
++----------------------+----------------------+
+| Binary               | No*                  |
++----------------------+----------------------+
+ *  Default setting.
+ ** The specified setting matches the default setting.
+
+Running DRC.
+DRC detected 0 errors and 0 warnings.  Please see the previously displayed
+individual error or warning messages for more details.
+Creating bit map...
+Saving bit stream in "lab0.bit".
+Bitstream generation is complete.

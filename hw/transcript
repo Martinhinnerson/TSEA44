@@ -1,0 +1,19 @@
+# //  ModelSim SE 6.5c Aug 27 2009 Linux 2.6.32-754.6.3.el6.x86_64
+# //
+# //  Copyright 1991-2009 Mentor Graphics Corporation
+# //              All Rights Reserved.
+# //
+# //  THIS WORK CONTAINS TRADE SECRET AND 
+# //  PROPRIETARY INFORMATION WHICH IS THE PROPERTY
+# //  OF MENTOR GRAPHICS CORPORATION OR ITS LICENSORS
+# //  AND IS SUBJECT TO LICENSE TERMS.
+# //
+# vsim work.lab0_zed_tb 
+# Loading /sw/xilinx/ise_10.1i-x86_64/ISE/smartmodel/lin64/installed_lin64/lib/pcnt.lib/swiftpli_mti.dll
+# ** Error: (vsim-3197) Load of "/sw/xilinx/ise_10.1i-x86_64/ISE/smartmodel/lin64/installed_lin64/lib/pcnt.lib/swiftpli_mti.dll" failed: /sw/xilinx/ise_10.1i-x86_64/ISE/smartmodel/lin64/installed_lin64/lib/pcnt.lib/swiftpli_mti.dll: cannot open shared object file: No such file or directory.
+# ** Error: (vsim-PLI-3002) Failed to load PLI object file "/sw/xilinx/ise_10.1i-x86_64/ISE/smartmodel/lin64/installed_lin64/lib/pcnt.lib/swiftpli_mti.dll".
+#         Region: /
+# Loading sv_std.std
+# Loading work.lab0_zed_tb
+# Loading work.lab0_zed
+# Error loading design

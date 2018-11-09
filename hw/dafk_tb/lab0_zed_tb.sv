@@ -12,7 +12,7 @@ module lab0_zed_tb();
    wire jumper;
    
    // Instantiate a UART
-   lab0_zed uart(.clk_i(clk_i), .rst_i(rst_i), .rx_i(jumper), .tx_o(jumper),  
+   lab0_zed uart_zed(.clk_i(clk_i), .rst_i(rst_i), .rx_i(jumper), .tx_o(jumper),  
                 .led_o(led_o), .switch_i(switch_i), .send_i(send_i)) ;
    
    always #5 clk_i = ~clk_i;  // 100 MHz clock
@@ -20,8 +20,14 @@ module lab0_zed_tb();
    initial
      begin
         clk_i = 1'b0;
-        switch_i = 8'h41;  // transmit/receive 'A'
+        switch_i = 8'b10011100;  // transmit/receive 'A'
         rst_i = 1'b1;
+        send_i = 1'b0;
+        #100 rst_i = 1'b0; 
+        #1000 send_i = 1'b1;
+        #1100 send_i = 1'b0;
+        #1000000
+        switch_i = 8'b10011100;  // transmit/receive 'A'
         send_i = 1'b0;
         #100 rst_i = 1'b0; 
         #1000 send_i = 1'b1;
