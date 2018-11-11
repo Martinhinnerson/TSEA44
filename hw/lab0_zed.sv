@@ -37,8 +37,7 @@ module lab0_zed(
    reg [7:0] 		tx_hold_reg;
    reg [3:0] 		tx_bitCtr;
    reg [9:0] 		tx_delayCtr;
-   reg [2:0] 		tx_state;
-   reg 			send_ok; 			
+   reg [2:0] 		tx_state;			
 
    parameter tx_idle       = 3'd0;
    parameter tx_start      = 3'd1;
@@ -139,8 +138,7 @@ module lab0_zed(
            tx_bitCtr <= word_length;
            tx_delayCtr <= BAUDDELAY;
            tx_shift_reg <= 0'd0;
-           tx_o_tmp <= 1'b1;
-	   send_ok <= 1'b0;	   
+           tx_o_tmp <= 1'b1;	   
         end
         else
           begin
@@ -149,11 +147,8 @@ module lab0_zed(
                   tx_delayCtr <= BAUDDELAY;
                   tx_bitCtr <= word_length;
                   tx_shift_reg <= tx_hold_reg;
-		  if (!send_i)
-		    send_ok <= 1'b1;
-		  if (send_i && send_ok) begin //If the send button is pushed
+		  if (send_i) begin //If the send button is pushed
                      tx_state <= tx_start;
-		     send_ok <= 1'b0;
 		  end
                end
                tx_start: begin
@@ -181,7 +176,8 @@ module lab0_zed(
                end
                tx_stop: begin
                   if (tx_delayCtr == 0) begin //send the stop bit
-                     tx_state <= tx_idle;
+		     if(!send_i) 
+                       tx_state <= tx_idle;
                      tx_o_tmp <= 1'b1;
                   end else begin
                      tx_delayCtr <= tx_delayCtr - 1'b1;

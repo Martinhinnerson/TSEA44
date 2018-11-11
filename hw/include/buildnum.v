@@ -1,1 +1,1 @@
-`define BUILDREV 16'd76
+`define BUILDREV 16'd77
