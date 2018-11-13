@@ -44,6 +44,7 @@ module lab0_zed(
    parameter tx_send_bit   = 3'd2;
    parameter tx_next       = 3'd3;
    parameter tx_stop       = 3'd4;
+   parameter tx_end        = 3'd5;
 
    //Other parameters
    parameter word_length = 4'd7; // word lenght-1 used by the uart protocol
@@ -156,7 +157,7 @@ module lab0_zed(
                   tx_state <= tx_send_bit;
                end
                tx_send_bit: begin
-                  if (tx_delayCtr == 0) begin //If we should send the next bit
+                  if (tx_delayCtr == 0) begin //Send the next bit
                      tx_state <= tx_next;
                      tx_delayCtr <= BAUDDELAY;
                      tx_o_tmp <= tx_shift_reg[0];
@@ -176,11 +177,20 @@ module lab0_zed(
                end
                tx_stop: begin
                   if (tx_delayCtr == 0) begin //send the stop bit
-		     if(!send_i) 
-                       tx_state <= tx_idle;
-                     tx_o_tmp <= 1'b1;
+		                tx_state <= tx_end;
+                    tx_o_tmp <= 1'b1;
+                    tx_delayCtr <= BAUDDELAY;
                   end else begin
-                     tx_delayCtr <= tx_delayCtr - 1'b1;
+                    tx_delayCtr <= tx_delayCtr - 1'b1;
+                  end
+                tx_end: begin 
+                  if(tx_delayCtr == 0) begin //wait out the stop bit before returning
+                    if(!send_i) begin //only return if the button is not held down
+                      tx_state <= tx_idle;
+                    end
+                    else begin
+                      tx_delayCtr <= tx_delayCtr - 1'b1;
+                    end
                   end
                end
                default: tx_state <= tx_idle; //We should never be here
