@@ -11,7 +11,7 @@ available performance and functional enhancements for this device. The latest
 stepping level for this device is '1'. Additional information on "stepping
 level" is available at support.xilinx.com.
 
-Sun Nov 11 13:47:37 2018
+Tue Nov 13 08:30:37 2018
 
 /sw/xilinx/ise_10.1i-x86_64/ISE/bin/lin64/unwrapped/bitgen -w -g StartupClk:JtagClk lab0.ncd lab0.bit 
 

@@ -1,6 +1,6 @@
 iMPACT Version: Jul 24 2008 23:37:45
 
-iMPACT log file Started on Sun Nov 11 13:19:27 2018
+iMPACT log file Started on Tue Nov 13 08:31:50 2018
 
 Preference Table
 Name                 Setting             
@@ -15,30 +15,40 @@ MessageLevel         Detailed
 svfUseTime           false               
 SpiByteSwap          Auto_Correction     
 AutoDetecting cable. Please wait.
+Reusing 7802D621 key.
+Reusing FC02D621 key.
 Connecting to cable (Parallel Port - parport0).
  Linux release = 2.6.32-754.6.3.el6.x86_64.
 WARNING:iMPACT -  Module windrvr6 is not loaded. Please reinstall the cable   drivers. See Answer Record 22648.
  Linux release = 2.6.32-754.6.3.el6.x86_64.
 WARNING:iMPACT -  Module parport_pc is not loaded. Please reinstall the cable   drivers. See Answer Record 22648.
 Cable connection failed.
+Reusing 7902D621 key.
+Reusing FD02D621 key.
 Connecting to cable (Parallel Port - parport1).
  Linux release = 2.6.32-754.6.3.el6.x86_64.
 WARNING:iMPACT -  Module windrvr6 is not loaded. Please reinstall the cable   drivers. See Answer Record 22648.
  Linux release = 2.6.32-754.6.3.el6.x86_64.
 WARNING:iMPACT -  Module parport_pc is not loaded. Please reinstall the cable   drivers. See Answer Record 22648.
 Cable connection failed.
+Reusing 7A02D621 key.
+Reusing FE02D621 key.
 Connecting to cable (Parallel Port - parport2).
  Linux release = 2.6.32-754.6.3.el6.x86_64.
 WARNING:iMPACT -  Module windrvr6 is not loaded. Please reinstall the cable   drivers. See Answer Record 22648.
  Linux release = 2.6.32-754.6.3.el6.x86_64.
 WARNING:iMPACT -  Module parport_pc is not loaded. Please reinstall the cable   drivers. See Answer Record 22648.
 Cable connection failed.
+Reusing 7B02D621 key.
+Reusing FF02D621 key.
 Connecting to cable (Parallel Port - parport3).
  Linux release = 2.6.32-754.6.3.el6.x86_64.
 WARNING:iMPACT -  Module windrvr6 is not loaded. Please reinstall the cable   drivers. See Answer Record 22648.
  Linux release = 2.6.32-754.6.3.el6.x86_64.
 WARNING:iMPACT -  Module parport_pc is not loaded. Please reinstall the cable   drivers. See Answer Record 22648.
 Cable connection failed.
+Reusing A002D621 key.
+Reusing 2402D621 key.
  Using libusb.
 Connecting to cable (Usb Port - USB21).
 Checking cable driver.
@@ -50,11 +60,9 @@ Type = 0x0004.
  Cable Type = 3, Revision = 0.
  Setting cable speed to 6 MHz.
 Cable connection established.
-Firmware version = 1028.
+Firmware version = 1303.
 File version of /sw/xilinx/ise_10.1i-x86_64/ISE/data/xusb_xlp.hex = 1303.
 Firmware hex file version = 1303.
-Downloading /sw/xilinx/ise_10.1i-x86_64/ISE/data/xusb_xlp.hex.
-Downloaded firmware version = 1303.
 PLD file version = 0012h.
  PLD version = 0012h.
 Loading cdf file avnetchain.cdf...
@@ -129,7 +137,7 @@ INFO:iMPACT:579 - '3': Completed downloading bit file to device.
 Match cycle: NoWait
 INFO:iMPACT - '3': Checking done pin....done.
 '3': Programmed successfully.
-Elapsed time =      4 sec.
+Elapsed time =      5 sec.
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------
 ----------------------------------------------------------------------

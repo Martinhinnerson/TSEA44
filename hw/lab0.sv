@@ -23,6 +23,8 @@ module lab0(
    reg [9:0] 		rx_delayCtr;
    reg [2:0] 		rx_state;
    reg 			rx_i_sync;
+   reg 			send_i_sync;
+   
 
    parameter rx_idle       = 3'd0;
    parameter rx_start      = 3'd1;
@@ -44,6 +46,8 @@ module lab0(
    parameter tx_send_bit   = 3'd2;
    parameter tx_next       = 3'd3;
    parameter tx_stop       = 3'd4;
+   parameter tx_end        = 3'd5;
+   
 
    //Other parameters
    parameter word_length = 4'd7; // word lenght-1 used by the uart protocol
@@ -56,6 +60,8 @@ module lab0(
    /*** Sync the rx input ***/
    always_ff @(posedge clk_i) begin
       rx_i_sync <= rx_i;
+      send_i_sync <= send_i;
+      
    end
    
    assign  led_o[7:0] = rx_hold_reg[7:0];
@@ -65,7 +71,7 @@ module lab0(
    end
 
    /*** Reciever module ***/
-   always_ff @(posedge clk_i or posedge rst_i)
+   always_ff @(posedge clk_i)
      begin
         if (rst_i) begin
            rx_state <= rx_idle;
@@ -131,7 +137,7 @@ module lab0(
      end
 
    /*** Transmitter module ***/
-   always_ff @(posedge clk_i or posedge rst_i)
+   always_ff @(posedge clk_i)
      begin
         if (rst_i) begin
            tx_state <= tx_idle;
@@ -147,7 +153,7 @@ module lab0(
                   tx_delayCtr <= BAUDDELAY;
                   tx_bitCtr <= word_length;
                   tx_shift_reg <= tx_hold_reg;
-		  if (send_i) begin //If the send button is pushed
+		  if (send_i_sync) begin //If the send button is pushed
                      tx_state <= tx_start;
 		  end
                end
@@ -167,24 +173,34 @@ module lab0(
                end
                tx_next: begin
                   if (tx_bitCtr == 4'b0) begin //If we have no bits left to read, go to stop
-                     tx_delayCtr <= BAUDDELAY;
-                     tx_state <= tx_stop;
+		     tx_delayCtr <= BAUDDELAY;
+		     tx_state <= tx_stop;
                   end else begin //If we have bits left go back to read_bit
-                     tx_state <= tx_send_bit;
-                     tx_bitCtr <= tx_bitCtr - 1'b1;
+		     tx_state <= tx_send_bit;
+			 tx_bitCtr <= tx_bitCtr - 1'b1;
                   end
                end
-               tx_stop: begin
+	       tx_stop: begin
                   if (tx_delayCtr == 0) begin //send the stop bit
-		     if(!send_i)
-                       tx_state <= tx_idle;
+		     tx_state <= tx_end;
                      tx_o_tmp <= 1'b1;
+                     tx_delayCtr <= BAUDDELAY;
                   end else begin
                      tx_delayCtr <= tx_delayCtr - 1'b1;
                   end
-               end
-               default: tx_state <= tx_idle; //We should never be here
-             endcase
+	       end
+               tx_end: begin 
+                  if(tx_delayCtr == 0) begin //wait out the stop bit before returning
+		     if(!send_i_sync) begin //only return if the button is not held down
+			tx_state <= tx_idle;
+		     end
+		  end
+		  else begin
+		     tx_delayCtr <= tx_delayCtr - 1'b1;
+		  end
+	       end
+	       default: tx_state <= tx_idle; //We should never be here
+	     endcase
           end // else: !if(rst_i)
      end
    assign tx_o = tx_o_tmp;
