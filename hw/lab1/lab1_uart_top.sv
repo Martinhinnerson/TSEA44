@@ -24,8 +24,8 @@ module lab1_uart_top
 
 
     uart_module uart(
-        .clk_i(wb.clk_i),
-        .rst_i(wb.rst_i),
+        .clk_i(wb.clk),
+        .rst_i(wb.rst),
         .rx_i(srx_pad_i),
         .tx_o(stx_pad_o),
         .shift_reg_rx_i(shift_reg_rx_i),
@@ -35,8 +35,8 @@ module lab1_uart_top
         .end_char_tx(end_char_tx));
 
     uart_wb_transmitter uart_wb_trans(
-        .clk_i(wb.clk_i),
-        .rst_i(wb.rst_i),
+        .clk_i(wb.clk),
+        .rst_i(wb.rst),
         .stb_i(wb.stb),
         .we_i(wb.we),
         .sel3_i(wb.sel[3]),
@@ -48,8 +48,8 @@ module lab1_uart_top
         .tx_empty_o(wb.dat_i[22:21]));
 
     uart_wb_receiver uart_wb_recv(
-        .clk_i(wb.clk_i),
-        .rst_i(wb.rst_i),
+        .clk_i(wb.clk),
+        .rst_i(wb.rst),
         .stb_i(wb.stb),
         .we_i(wb.we),
         .sel3_i(wb.sel[3]),
@@ -60,8 +60,8 @@ module lab1_uart_top
         .shift_reg_rx_i(shift_reg_rx_i));
 
     bus_ack ack(
-        .clk_i(wb.clk_i),
-        .rst_i(wb.rst_i),
+        .clk_i(wb.clk),
+        .rst_i(wb.rst),
         .stb_i(wb.stb),
         .ack_o(wb.ack));
 
@@ -89,8 +89,8 @@ module uart_module(
     output end_char_tx);
     
     
-    receiver recv(.*);
-    transmitter trans(.*);
+    receiver_wb recv(.*);
+    transmitter_wb trans(.*);
     
 endmodule
 // Local Variables:
@@ -240,7 +240,7 @@ endmodule
 
 
 
-module receiver(
+module receiver_wb(
     input clk_i,
     input rst_i,
     input rx_i,
@@ -392,7 +392,7 @@ module receiver(
 endmodule
 
 
-module transmitter(
+module transmitter_wb(
     input clk_i,
     input rst_i,
     output tx_o,
