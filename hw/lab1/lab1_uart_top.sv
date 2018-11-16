@@ -22,6 +22,12 @@ module lab1_uart_top
     logic end_char_rx;
     logic end_char_tx;
 
+    // Only using 31:24, 22:21 and 16 on wb.dat_i
+    // Set others to 0
+    assign wb.dat_i[23] = 1'b0;
+    assign wb.dat_i[20:17] = 4'h0;
+    assign wb.dat_i[15:0] = 16'h0000;
+
 
     uart_module uart(
         .clk_i(wb.clk),
