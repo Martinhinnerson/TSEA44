@@ -138,7 +138,7 @@ module uart_wb_transmitter(
 
     always_ff @(posedge clk_i) begin
         if (rst_i) begin
-            tx_empty <= 1'b0;
+            tx_empty <= 1'b1;
         end
         else begin
             if (wr) begin
