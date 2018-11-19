@@ -33,7 +33,8 @@ initial
 initial
   begin
      // test monitor with "d 00002000\r"
-     #7000000 computer0.uart1.putstr("d 00002000"); 
+     #14000000 computer0.uart1.putstr("d 00002000"); 
+     //#14000000 computer0.uart1.putch(8'h69);
   end
    
 endprogram // tester

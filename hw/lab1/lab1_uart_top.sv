@@ -252,7 +252,10 @@ module receiver_wb(
     input rx_i,
     output [7:0] shift_reg_rx_i,
     output end_char_rx);
-    
+
+   parameter BAUD_DELAY=217;
+   parameter BAUD_START=325;
+   
     typedef enum {NO_MSG, START_BIT_DETECTED, DATA_BITS, STOP_BIT} recv_state_t;
     recv_state_t recv_state, next_recv_state;
     
@@ -317,7 +320,7 @@ module receiver_wb(
             end
             
             START_BIT_DETECTED: begin
-                if (cnt == 10'd521) begin
+                if (cnt == BAUD_START) begin
                     next_recv_state = DATA_BITS;
                     next_cnt = 10'h0;
                     shift = 1'b1;
@@ -330,12 +333,12 @@ module receiver_wb(
             end
             
             DATA_BITS: begin
-                if (cnt8 == 4'd7 && cnt == 10'd347) begin
+                if (cnt8 == 4'd7 && cnt == BAUD_DELAY) begin
                     next_recv_state = STOP_BIT;
                     next_cnt = 10'h0;
                     next_cnt8 = 4'h0;
                 end
-                else if (cnt == 10'd347) begin
+                else if (cnt == BAUD_DELAY) begin
                     next_recv_state = DATA_BITS;
                     next_cnt = 10'h0;
                     next_cnt8 = cnt8 + 4'h1;
@@ -405,6 +408,8 @@ module transmitter_wb(
     input [7:0] shift_reg_tx_o,
     input send_i,
     output end_char_tx);
+
+   parameter BAUD_DELAY=217;
     
     
     typedef enum {NO_SEND, SEND_START, SEND_DATA, SEND_STOP} trans_state_t;
@@ -465,7 +470,7 @@ module transmitter_wb(
             end
             
             SEND_START: begin
-                if (cnt == 10'd347) begin
+                if (cnt == BAUD_DELAY) begin
                     next_trans_state = SEND_DATA;
                     next_cnt = 10'h0;
                 end
@@ -476,12 +481,12 @@ module transmitter_wb(
             end
             
             SEND_DATA: begin
-                if (data_bit == 7 && cnt == 10'd347) begin
+                if (data_bit == 7 && cnt == BAUD_DELAY) begin
                     next_trans_state = SEND_STOP;
                     next_cnt = 10'h0;
                     next_data_bit = 4'h0;
                 end
-                else if (cnt == 10'd347) begin
+                else if (cnt == BAUD_DELAY) begin
                     next_trans_state = SEND_DATA;
                     next_cnt = 10'h0;
                     next_data_bit = data_bit + 4'h1;
@@ -493,7 +498,7 @@ module transmitter_wb(
             end
             
             SEND_STOP: begin
-                if (cnt == 10'd347) begin
+                if (cnt == BAUD_DELAY) begin
                     next_trans_state = NO_SEND;
                     next_cnt = 10'h0;
                     stop_bit_sent = 1'b1;
