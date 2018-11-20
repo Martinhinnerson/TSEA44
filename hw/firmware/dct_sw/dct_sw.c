@@ -1,4 +1,5 @@
 #include "printf.h"
+#include "common.h"
 
 /* Precalculated constants */
 #define FIX_0_298631336  ((int)  2446)	/* FIX(0.298631336) */
@@ -20,6 +21,7 @@
 #define MULTIPLY(var,const)  (((short) (var)) * ((short) (const)))
 #define DESCALE(x,n)  ((x) >> (n)) /* no rounding in our HW */
 #define CONST_BITS  13
+
 
 int image[64];
 /* Quantization matrix, Matlab notation
@@ -51,6 +53,7 @@ void dct1(int *a, int *p);
 int main()
 {
   int i, j, temp, rval, rnd, bits, pos;
+  int ctr0,ctr1,ctr2,ctr3;
 
   printf("\na=\n");
   for (i=0; i<8; i++) {
@@ -59,6 +62,11 @@ int main()
     printf("\n");
   }
 
+  REG32(0x99000000) = 0;
+  REG32(0x99000004) = 0;
+  REG32(0x99000008) = 0;
+  REG32(0x9900000c) = 0;
+  
   dct2(image);
   image[0] -= 8192;
 
@@ -91,6 +99,14 @@ int main()
     printf("\n");
   }
 
+  ctr0 = REG32(0x99000000);
+  ctr1 = REG32(0x99000004);
+  ctr2 = REG32(0x99000008);
+  ctr3 = REG32(0x9900000c);
+  printf("ctr0: %d \n", ctr0);
+  printf("ctr1: %d \n", ctr1);
+  printf("ctr2: %d \n", ctr2);
+  printf("ctr3: %d \n", ctr3);
 
   return(0);
 }
