@@ -72,11 +72,15 @@ program test_uart();
     
     initial begin
         for (i=0;i<25;i++) begin
+            
+// =================================================================
+            //Added check on tx_empty before we can send
             while (result != 32'h00600000) begin
                 suart_tb.wb0.m_read(32'h90000004, result);
                 result = result & 32'h00600000;
                 #400;
             end
+// =================================================================
             
             suart_tb.wb0.m_write(32'h90000000, A);
             #400;

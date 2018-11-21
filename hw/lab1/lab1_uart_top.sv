@@ -1,6 +1,8 @@
 `include "include/timescale.v"
 
-
+// =============================================================================
+// lab1_uart_top: Top module connecting all the submodules
+// =============================================================================
 module lab1_uart_top 
     (wishbone.slave wb,
     output wire int_o,
@@ -15,65 +17,63 @@ module lab1_uart_top
     // You will also have to change the interface of lab0_uart to make this work.
     //assign wb.ack = wb.stb;   // Change this line
     //assign stx_pad_o = srx_pad_i; // Change this line.. :)
-
+    
     logic [7:0] shift_reg_rx_i;
     logic [7:0] shift_reg_tx_o;
     logic send;
     logic end_char_rx;
     logic end_char_tx;
-
+    
     // Only using 31:24, 22:21 and 16 on wb.dat_i
     // Set others to 0
     assign wb.dat_i[23] = 1'b0;
     assign wb.dat_i[20:17] = 4'h0;
     assign wb.dat_i[15:0] = 16'h0000;
-
-
+    
+    
     uart_module uart(
-        .clk_i(wb.clk),
-        .rst_i(wb.rst),
-        .rx_i(srx_pad_i),
-        .tx_o(stx_pad_o),
-        .shift_reg_rx_i(shift_reg_rx_i),
-        .shift_reg_tx_o(shift_reg_tx_o),
-        .send_i(send),
-        .end_char_rx(end_char_rx),
-        .end_char_tx(end_char_tx));
-
+    .clk_i(wb.clk),
+    .rst_i(wb.rst),
+    .rx_i(srx_pad_i),
+    .tx_o(stx_pad_o),
+    .shift_reg_rx_i(shift_reg_rx_i),
+    .shift_reg_tx_o(shift_reg_tx_o),
+    .send_i(send),
+    .end_char_rx(end_char_rx),
+    .end_char_tx(end_char_tx));
+    
     uart_wb_transmitter uart_wb_trans(
-        .clk_i(wb.clk),
-        .rst_i(wb.rst),
-        .stb_i(wb.stb),
-        .we_i(wb.we),
-        .sel3_i(wb.sel[3]),
-        .adr2_i(wb.adr[2]),
-        .tx_reg_i(wb.dat_o[31:24]),
-        .end_char_tx(end_char_tx),
-        .send_o(send),
-        .shift_reg_tx_o(shift_reg_tx_o),
-        .tx_empty_o(wb.dat_i[22:21]));
-
+    .clk_i(wb.clk),
+    .rst_i(wb.rst),
+    .stb_i(wb.stb),
+    .we_i(wb.we),
+    .sel3_i(wb.sel[3]),
+    .adr2_i(wb.adr[2]),
+    .tx_reg_i(wb.dat_o[31:24]),
+    .end_char_tx(end_char_tx),
+    .send_o(send),
+    .shift_reg_tx_o(shift_reg_tx_o),
+    .tx_empty_o(wb.dat_i[22:21]));
+    
     uart_wb_receiver uart_wb_recv(
-        .clk_i(wb.clk),
-        .rst_i(wb.rst),
-        .stb_i(wb.stb),
-        .we_i(wb.we),
-        .sel3_i(wb.sel[3]),
-        .adr2_i(wb.adr[2]),
-        .rx_reg_o(wb.dat_i[31:24]),
-        .rx_full_o(wb.dat_i[16]),
-        .end_char_rx(end_char_rx),
-        .shift_reg_rx_i(shift_reg_rx_i));
-
+    .clk_i(wb.clk),
+    .rst_i(wb.rst),
+    .stb_i(wb.stb),
+    .we_i(wb.we),
+    .sel3_i(wb.sel[3]),
+    .adr2_i(wb.adr[2]),
+    .rx_reg_o(wb.dat_i[31:24]),
+    .rx_full_o(wb.dat_i[16]),
+    .end_char_rx(end_char_rx),
+    .shift_reg_rx_i(shift_reg_rx_i));
+    
     bus_ack ack(
-        .clk_i(wb.clk),
-        .rst_i(wb.rst),
-        .stb_i(wb.stb),
-        .ack_o(wb.ack));
-
-
-
-
+    .clk_i(wb.clk),
+    .rst_i(wb.rst),
+    .stb_i(wb.stb),
+    .ack_o(wb.ack));
+    
+    
 endmodule
 
 
@@ -81,8 +81,9 @@ endmodule
 // verilog-library-directories:("." ".." "../or1200" "../jpeg" "../pkmc" "../dvga" "../uart" "../monitor" "../lab1" "../dafk_tb" "../eth" "../wb" "../leela")
 // End:
 
-
-
+// =============================================================================
+// uart_module: Module with UartTX and UartRX (not the wishbone part)
+// =============================================================================
 module uart_module(
     input clk_i,
     input rst_i,
@@ -103,7 +104,9 @@ endmodule
 // verilog-library-directories:("." "or1200" "jpeg" "pkmc" "dvga" "uart" "monitor" "lab1" "dafk_tb" "eth" "wb" "leela")
 // End:
 
-
+// =============================================================================
+// uart_wb_transmitter: Module connecting UartTX to wishbone
+// =============================================================================
 module uart_wb_transmitter(
     input clk_i,
     input rst_i,
@@ -122,8 +125,10 @@ module uart_wb_transmitter(
     logic wr_delayed;
     logic [7:0] tx_reg;
     
+    //Or gate to create signal wr
     assign wr = (stb_i && we_i && sel3_i && !adr2_i);
     
+    //Delay flip flop on wr
     always_ff @(posedge clk_i) begin
         if (rst_i) begin
             wr_delayed <= 1'b0;
@@ -132,10 +137,10 @@ module uart_wb_transmitter(
             wr_delayed <= wr;
         end
     end
-
+    
     assign send_o = wr_delayed;
-
-
+    
+    //tx_empty set/reset ff
     always_ff @(posedge clk_i) begin
         if (rst_i) begin
             tx_empty <= 1'b1;
@@ -150,13 +155,13 @@ module uart_wb_transmitter(
             // Else keep value
         end
     end
-
+    
     assign tx_empty_o = {2{tx_empty}};
-
-
+    
+    //tx_reg
     always_ff @(posedge clk_i) begin
         if (rst_i) begin
-           tx_reg <= 8'h00; 
+            tx_reg <= 8'h00; 
         end
         else begin
             if (wr) begin
@@ -164,13 +169,15 @@ module uart_wb_transmitter(
             end
         end
     end
-
+    
     assign shift_reg_tx_o = tx_reg;
     
     
 endmodule
 
-
+// =============================================================================
+// bus_ack: Module sending ack to wishbone
+// =============================================================================
 module bus_ack(
     input clk_i,
     input rst_i,
@@ -179,6 +186,7 @@ module bus_ack(
     
     logic ack;
     
+    //Send acknowledgement when strobe is received
     always_ff @(posedge clk_i) begin
         if (rst_i) begin
             ack <= 1'b0;
@@ -192,7 +200,9 @@ module bus_ack(
     
 endmodule
 
-
+// =============================================================================
+// uart_wb_receiver: Module Connecting the UartRX to wishbone
+// =============================================================================
 module uart_wb_receiver(
     input clk_i,
     input rst_i,
@@ -245,17 +255,19 @@ module uart_wb_receiver(
 endmodule
 
 
-
+// =============================================================================
+// receiver_wb: Receiver part of the UART
+// =============================================================================
 module receiver_wb(
     input clk_i,
     input rst_i,
     input rx_i,
     output [7:0] shift_reg_rx_i,
     output end_char_rx);
-
-   parameter BAUD_DELAY=217;
-   parameter BAUD_START=325;
-   
+    
+    parameter BAUD_DELAY=217;
+    parameter BAUD_START=325;
+    
     typedef enum {NO_MSG, START_BIT_DETECTED, DATA_BITS, STOP_BIT} recv_state_t;
     recv_state_t recv_state, next_recv_state;
     
@@ -400,7 +412,9 @@ module receiver_wb(
     
 endmodule
 
-
+// =============================================================================
+// transmitter_wb: Transmitter part of the UART
+// =============================================================================
 module transmitter_wb(
     input clk_i,
     input rst_i,
@@ -408,8 +422,8 @@ module transmitter_wb(
     input [7:0] shift_reg_tx_o,
     input send_i,
     output end_char_tx);
-
-   parameter BAUD_DELAY=217;
+    
+    parameter BAUD_DELAY=217;
     
     
     typedef enum {NO_SEND, SEND_START, SEND_DATA, SEND_STOP} trans_state_t;
