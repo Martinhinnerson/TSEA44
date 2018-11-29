@@ -191,7 +191,9 @@ module bus_ack(
         if (rst_i) begin
             ack <= 1'b0;
         end
-        else begin
+       if (ack) begin
+	  ack <= 1'b0;
+       end else begin
             ack <= stb_i;
         end
     end

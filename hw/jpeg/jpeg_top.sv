@@ -194,3 +194,50 @@ endmodule
 // Local Variables:
 // verilog-library-directories:("." ".." "../or1200" "../jpeg" "../pkmc" "../dvga" "../uart" "../monitor" "../lab1" "../dafk_tb" "../eth" "../wb" "../leela")
 // End:
+
+module wb_ctrl(
+    input clk_i,
+    input rst_i,
+    input stb_i,
+    output ack_o);
+    
+    logic ack;
+    
+    //Send acknowledgement when strobe is received
+    always_ff @(posedge clk_i) begin
+        if (rst_i) begin
+            ack <= 1'b0;
+        end
+        if (ack) begin
+	    ack <= 1'b0;
+        end else begin
+            ack <= stb_i;
+        end
+    end
+    
+   assign ack_o = ack;
+    
+endmodule // wb_ctrl
+
+module dct_ctrl(
+		input clk_i,
+		input rst_i,
+		input dat_o,
+		input adr_i,
+		input stb_i,
+		input we_i,
+		output [7:0] csr_o,
+		output t_rd,
+		output t_wr,
+		output count_enable_in,
+		output count_enable_out,
+		output [1:0] q2_mux_sel,
+		output dct_mux_sel,
+		output dct_enable,
+		output count_in_rst,
+		output count_out_rst);
+   
+   typedef enum        {IDLE, FIRST1, FIRST2, FIRST3, FIRST4, FIRST5, SECOND1, SECOND2, SECOND3, SECOND4, SECOND5};
+   
+
+endmodule // dct_ctrl

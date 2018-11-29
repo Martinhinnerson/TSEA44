@@ -8,7 +8,6 @@ module transpose(input logic clk, rst, wr , rd,
 
    row_reg row0(
 		.clk(clk),
-		.rst(rst),
 		.wr(wr),
 		.rd(rd),
 		.bits_i(in),
@@ -16,7 +15,6 @@ module transpose(input logic clk, rst, wr , rd,
 		.bits_o_wr(row01));
    row_reg row1(
 		.clk(clk),
-		.rst(rst),
 		.wr(wr),
 		.rd(rd),
 		.bits_i(row01),
@@ -24,7 +22,6 @@ module transpose(input logic clk, rst, wr , rd,
 		.bits_o_wr(row12));
    row_reg row2(
 		.clk(clk),
-		.rst(rst),
 		.wr(wr),
 		.rd(rd),
 		.bits_i(row12),
@@ -32,7 +29,6 @@ module transpose(input logic clk, rst, wr , rd,
 		.bits_o_wr(row23));
    row_reg row3(
 		.clk(clk),
-		.rst(rst),
 		.wr(wr),
 		.rd(rd),
 		.bits_i(row23),
@@ -40,7 +36,6 @@ module transpose(input logic clk, rst, wr , rd,
 		.bits_o_wr(row34));
    row_reg row4(
 		.clk(clk),
-		.rst(rst),
 		.wr(wr),
 		.rd(rd),
 		.bits_i(row34),
@@ -56,7 +51,6 @@ module transpose(input logic clk, rst, wr , rd,
 		.bits_o_wr(row56));
    row_reg row6(
 		.clk(clk),
-		.rst(rst),
 		.wr(wr),
 		.rd(rd),
 		.bits_i(row56),
@@ -64,7 +58,6 @@ module transpose(input logic clk, rst, wr , rd,
 		.bits_o_wr(row67));
    row_reg row7(
 		.clk(clk),
-		.rst(rst),
 		.wr(wr),
 		.rd(rd),
 		.bits_i(row67),
@@ -79,9 +72,9 @@ endmodule
 // End:
 
 // Låt DCT läsa av första kolumnen innan rd sätts
-module row_reg(input logic clk, rst, wr, rd,
+module row_reg(input logic clk, wr, rd,
 	       input logic [95:0] bits_i,
-	       output logic [11:0] bits_o_rd
+	       output logic [11:0] bits_o_rd,
 	       output logic [95:0] bits_o_wr);
 
    logic [1:0] 			    input_select;
@@ -90,21 +83,16 @@ module row_reg(input logic clk, rst, wr, rd,
    logic [95:0] 		    shift_reg;
 
    always_ff @(posedge clk) begin
-      if (rst) begin
-	 shift_reg <= 96'h0;
-      end
-      else begin
-	 case (input_select)
-	   2'b10: begin
-	      shift_reg <= bits_i;
-	   end
-	   2'b01: begin
-	      shift_reg <= {shift_reg[83:0],16'h0};
-	   end
-	   default: begin
-	   end
-	 endcase
-      end
+      case (input_select)
+	2'b10: begin
+	   shift_reg <= bits_i;
+	end
+	2'b01: begin
+	   shift_reg <= {shift_reg[83:0],16'h0};
+	end
+	default: begin
+	end
+      endcase
    end
 
    assign bits_o_rd = shift_reg[95:84];
