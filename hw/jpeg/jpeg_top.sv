@@ -118,7 +118,7 @@
    logic [31:0] wb_dma_dat;
 
    // You must create the signals to the block ram somewhere...
-
+   
    
    jpeg_dma dma
      (
@@ -177,6 +177,20 @@
       .clk_i(wb.clk), .en(mmem.dcten)
    );
 
+   logic 	dct_mux_sel;
+   logic [63:0] ram_to_dct;
+   
+
+   always_comb begin
+      if (dct_mux_sel) begin
+	 x = ut;
+      end else begin
+	 x = {4'h0,ram_to_dct[63:56], 4'h0,ram_to_dct[55:48],
+	      4'h0,ram_to_dct[47:40], 4'h0,ram_to_dct[39:32],
+	      4'h0,ram_to_dct[31:24], 4'h0,ram_to_dct[23:16],
+	      4'h0,ram_to_dct[15:8], 4'h0,ram_to_dct[7:0]};
+      end
+   end
    
    // transpose memory
    // control: trd, twr
@@ -187,7 +201,69 @@
       .in({y[7][11:0],y[6][11:0],y[5][11:0],y[4][11:0],y[3][11:0],y[2][11:0],y[1][11:0],y[0][11:0]}), 
       .ut(ut));
 
+   wb_ctrl_module wb_ctrl(
+		.clk_i(wb.clk),
+		.rst_i(wb.rst),
+		.stb_i(wb.stb),
+		.ack_o(wb.ack));
+
+   logic [31:0] rec;
+   logic [1:0] 	q2_mux_sel;
    
+   
+
+   q2 quant(
+	    .x_o(dia),
+	    .x_i(q),
+	    .rec_i(rec));
+
+   always_comb begin
+      case (q2_mux_sel)
+	2'b00: begin
+	   q = {y[1][15:0],y[0][15:0]};
+	end
+	2'b01: begin
+	   q = {y[3][15:0],y[2][15:0]};
+	end
+	2'b10: begin
+	   q = {y[5][15:0],y[4][15:0]};
+	end
+	default: begin
+	   q = {y[7][15:0],y[6][15:0]};
+	end
+      endcase // case (q2_mux_sel)
+   end // always_comb begin
+
+   logic t_rd;
+   logic t_wr;
+   logic count_in_enable;
+   logic count_out_enable;
+   logic count_in_rst;
+   logic count_out_rst;
+   logic dct_enable;
+   logic dct_mux_sel;
+   
+   
+   
+   dct_ctrl_module dct_ctrl(
+			    .clk_i(wb.clk),
+			    .rst_i(wb.rst),
+			    .stb_i(wb.stb),
+			    .we_i(wb.we),
+			    .dat_o(wb.dat_o),
+			    .adr_i(wb.adr),
+			    .csr_o(csr),
+			    .t_rd(t_rd),
+			    .t_wr(t_wr),
+			    .count_in_enable(count_in_enable),
+			    .count_out_enable(count_out_enable),
+			    .count_in_rst(count_in_rst),
+			    .count_out_rst(count_out_rst),
+			    .dct_enable(dct_enable),
+			    .dct_mux_sel(dct_mux_sel),
+			    .q2_mux_sel(q2_mux_sel));
+
+      
    
 endmodule
 
@@ -195,7 +271,7 @@ endmodule
 // verilog-library-directories:("." ".." "../or1200" "../jpeg" "../pkmc" "../dvga" "../uart" "../monitor" "../lab1" "../dafk_tb" "../eth" "../wb" "../leela")
 // End:
 
-module wb_ctrl(
+module wb_ctrl_module(
     input clk_i,
     input rst_i,
     input stb_i,
@@ -219,25 +295,209 @@ module wb_ctrl(
     
 endmodule // wb_ctrl
 
-module dct_ctrl(
-		input clk_i,
-		input rst_i,
-		input dat_o,
-		input adr_i,
-		input stb_i,
-		input we_i,
+module dct_ctrl_module(
+		input clk_i, rst_i, stb_i, we_i
+		input [31:0] dat_o, adr_i,
 		output [7:0] csr_o,
-		output t_rd,
-		output t_wr,
-		output count_enable_in,
-		output count_enable_out,
+		output t_rd, t_wr, count_in_enable, count_out_enable,
 		output [1:0] q2_mux_sel,
-		output dct_mux_sel,
-		output dct_enable,
-		output count_in_rst,
-		output count_out_rst);
+		output dct_mux_sel, dct_enable, count_in_rst, count_out_rst);
    
-   typedef enum        {IDLE, FIRST1, FIRST2, FIRST3, FIRST4, FIRST5, SECOND1, SECOND2, SECOND3, SECOND4, SECOND5};
+   typedef enum        {IDLE, FIRST1, FIRST2, FIRST3, FIRST4, FIRST5, FIRST_STAGE_DONE,
+			SECOND1, SECOND2, SECOND3, SECOND4, SECOND5, SECOND6, DCT_DONE} state_t;
+   state_t state;
+   logic [7:0] 	       csr;
+   logic [1:0] 	       dct_state_counter;
+   logic [1:0] 	       q2_loop_counter;
    
+   assign csr_o = csr;
+   assign q2_mux_sel = q2_loop_counter;
+   
+   
+   always_ff @(posedge clk_i) begin
+      if (rst_i) begin
+	 state <= IDLE;
+      end else begin
+	 case (state)
+	   IDLE: begin
+	      if (csr[0]) begin
+		 state <= FIRST1;
+		 dct_state_counter <= 2'd3;
+	      end
+	   end
+	   FIRST1: begin
+	      state <= FIRST2;
+	   end
+	   FIRST2: begin
+	      if(dct_state_counter == 2'h0) begin
+		 state <= FIRST3;
+		 dct_state_counter <= 2'd3;
+	      end else begin
+		 state <= FIRST1;
+		 dct_state_counter <= dct_state_counter - 1'b1;
+	      end
+	   end
+	   FIRST3: begin
+	      state <= FIRST4;
+	   end
+	   FIRST4: begin
+	      if (dct_state_counter == 2'h0) begin
+		 state <= FIRST5;
+		 dct_state_counter <= 2'd3;
+	      end else begin
+		 state <= FIRST3;
+		 dct_state_counter <= dct_state_counter - 1'b1;
+	      end
+	   end
+	   FIRST5: begin
+	      if (dct_state_counter == 2'h0) begin
+		 state <= FIRST_STAGE_DONE;
+		 dct_state_counter <= 2'd3;
+	      end else begin
+		 dct_state_counter <= dct_state_counter - 1'b1;
+	      end
+	   end
+	   FIRST_STAGE_DONE: begin
+	      state <= SECOND1;
+	   end
+	   SECOND1: begin
+	      if (dct_state_counter == 2'h0) begin
+		 state <= SECOND2;
+		 dct_state_counter <= 2'd3;
+		 q2_loop_counter <= 2'd3;
+	      end else begin
+		 dct_state_counter <= dct_state_counter - 1'b1;
+	      end
+	   end
+	   SECOND2: begin
+	      if (dct_state_counter == 2'h0) begin
+		 state <= SECOND4;
+		 dct_state_counter <= 2'd2;
+	      end else if (q2_loop_counter == 2'h0) begin
+		 state <= SECOND3;
+		 dct_state_counter <= dct_state_counter - 1'b1;
+		 q2_loop_counter <= 2'd3;
+	      end else begin
+		 q2_loop_counter <= q2_loop_counter - 1'b1;
+	      end
+	   end
+	   SECOND3: begin
+	      state <= SECOND2;
+	   end
+	   SECOND4: begin
+	      state <= SECOND5;
+	   end
+	   SECOND5: begin
+	      if (dct_state_counter == 2'h0) begin
+		 state <= SECOND6;
+		 q2_loop_counter <= 2'd3;
+	      end else if (q2_loop_counter == 2'h0) begin
+		 state <= SECOND4;
+		 dct_state_counter <= dct_state_counter - 1'b1;
+		 q2_loop_counter <= 2'd3;
+	      end else begin
+		 q2_loop_counter <= q2_loop_counter - 1'b1;
+	      end
+	   end
+	   SECOND6: begin
+	      if (q2_loop_counter == 2'h0) begin
+		 state <= DCT_DONE;
+	      end else begin
+		 q2_loop_counter <= q2_loop_counter - 1'b1;
+	      end
+	   end
+	   DCT_DONE: begin
+	      state <= IDLE;
+	   end
+	   default: begin
+	      state <= IDLE;
+	      dct_state_counter <= 2'h0;
+	   end
+	 endcase // case (state)
+      end // else: !if(rst_i)
+   end // always_ff @ (posedge clk_i)
+
+   logic [1:0] csr_mux_sel;
+   
+
+   always_comb begin
+      t_wr = 1'b0;
+      t_rd = 1'b0;
+      count_in_enable = 1'b0;
+      count_out_enable = 1'b0;
+      count_in_rst = 1'b1;
+      count_out_rst = 1'b1;
+      dct_enable = 1'b0;
+      dct_mux_sel = 1'b0;
+      csr_mux_sel = 2'b00;
+      case (state)
+	IDLE: begin
+	end
+	FIRST1: begin
+	   count_in_rst = 1'b0;
+	   count_in_enable = 1'b1;
+	end
+	FIRST2 | FIRST4: begin
+	   count_in_rst = 1'b0;
+	   count_in_enable = 1'b1;
+	   dct_enable = 1'b1;
+	end
+	FIRST3: begin
+	   count_in_rst = 1'b0;
+	   count_in_enable = 1'b1;
+	   t_wr = 1'b1;
+	end
+	FIRST5: begin
+	   dct_enable = 1'b1;
+	   t_wr = 1'b1;
+	end
+	FIRST_STAGE_DONE: begin
+	   csr_mux_sel = 2'b01;
+	end
+	SECOND1: begin
+	   t_rd = 1'b1;
+	   dct_mux_sel = 1'b1;
+	   dct_enable = 1'b1;
+	end
+	SECOND2 | SECOND5 | SECOND6: begin
+	   count_out_enable = 1'b1;
+	   count_out_rst = 1'b0;
+	end
+	SECOND3: begin
+	   t_rd = 1'b1;
+	   dct_enable = 1'b1;
+	   count_out_rst = 1'b0;
+	end
+	SECOND4: begin
+	   dct_enable = 1'b1;
+	   count_out_rst = 1'b0;
+	end
+	DCT_DONE: begin
+	   csr_mux_sel = 2'b10;
+	end
+	default: begin
+	end
+      endcase // case (state)
+   end
+
+   always_ff @(posedge clk_i) begin
+      if (rst_i) begin
+	 csr <= 8'h0;
+      end else begin
+	 case (csr_mux_sel)
+	   2'b01: begin
+	      csr <= {csr[7:1],1'b0};
+	   end
+	   2'b10: begin
+	      csr <= {1'b1, csr[6:0]};
+	   end
+	   default: begin
+	      if (we_i && stb_i && adr_i[15:0] == 16'h1000) begin
+		 csr = dat_o[31:24];
+	      end 
+	   end
+	 endcase
+      end
+   end
 
 endmodule // dct_ctrl
