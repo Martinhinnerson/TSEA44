@@ -59,11 +59,9 @@
 
   module jpeg_top(wishbone.slave wb, wishbone.master wbm);
 
-   logic 		 state;
-   logic [6:0] 		 mpc;
    logic [31:0] 	 dout_res;
    logic 		 ce_in, ce_ut;
-   logic [5:0] 		 rdc;
+   logic [3:0] 		 rdc;
    logic [4:0] 		 wrc;
 
    logic [31:0] 	 dob, ut_doa;
@@ -71,20 +69,31 @@
    logic [0:7][11:0] 	 x, in, ut;
 
    logic [0:7][15:0] 	 y;   
-
-   logic [31:0] 	 reg1;
    
    logic [31:0] 	 q, dia;
    logic [31:0] 	 doa;
    logic 		 csren;
    logic [7:0] 		 csr;
-   logic 		 clr;
-   mmem_t 	mmem;
 
    logic 		 dmaen;
-
    logic 		 dct_busy;
    logic 		 dma_start_dct;
+
+
+   logic t_rd;
+   logic t_wr;
+   logic dct_enable;
+   logic count_in_enable;
+   logic count_out_enable;
+   logic count_in_rst;
+   logic count_out_rst;
+   logic dct_mux_sel;
+   logic [31:0] rec;
+   logic [1:0] 	q2_mux_sel;
+   logic [63:0] ram_to_dct;
+   logic [31:0] ram_to_dct_reg;
+      
+   
 
    // ********************************************
    // *          Wishbone interface              *
@@ -101,7 +110,7 @@
    
    // You must change the error signal when you
    // have implemented your design
-   assign wb.err = wb.stb;
+   assign wb.err = 1'b0; // wb.stb
 
    assign wb.rty = 1'b0;
    
@@ -118,6 +127,28 @@
    logic [31:0] wb_dma_dat;
 
    // You must create the signals to the block ram somewhere...
+
+   assign bram_data = {~wb.dat_o[31], wb.dat_o[30:24], ~wb.dat_o[23], wb.dat_o[22:16], ~wb.dat_o[15], wb.dat_o[14:8], ~wb.dat_o[7], wb.dat_o[6:0]};
+   assign bram_addr = wb.adr[8:0];
+   assign bram_we = wb.we;
+   assign bram_ce = ce_in;
+      
+
+   always_ff @(posedge wb.clk) begin
+      if (wb.rst || count_out_rst) begin
+	 wrc <= 5'h0;
+      end else if (count_out_enable) begin 
+	 wrc <= wrc + 1'b1;
+      end
+   end
+
+   always_ff @(posedge wb.clk) begin
+      if (wb.rst || count_in_rst) begin
+	 rdc <= 4'h0;
+      end else if (count_in_enable) begin
+	 rdc <= rdc + 1'b1;
+      end
+   end
    
    
    jpeg_dma dma
@@ -149,7 +180,7 @@
       .DOA(doa), .DOPA(),
       // DCT read
       .CLKB(wb.clk), .SSRB(wb.rst),
-      .ADDRB({3'h0,rdc}),
+      .ADDRB({5'h0,rdc}),
       .DIB(32'h0), .DIPB(4'h0), 
       .ENB(1'b1),.WEB(1'b0), 
       .DOB(dob), .DOPB());
@@ -159,7 +190,7 @@
       .CLKA(wb.clk), .SSRA(wb.rst),
       .ADDRA({4'h0,wrc}),
       .DIA(q), .DIPA(4'h0), .ENA(1'b1),
-      .WEA(mmem.wren), .DOA(ut_doa), .DOPA(),
+      .WEA(count_out_enable), .DOA(ut_doa), .DOPA(),
       // WB read & write
       .CLKB(wb.clk), .SSRB(wb.rst),
       .ADDRB(wb.adr[10:2]),
@@ -168,19 +199,37 @@
 
    // You must create the wb.dat_i signal somewhere...
 
+   always_comb begin
+      case (wb.adr[12:11])
+	2'b00: begin
+	   wb.dat_i = doa;
+	end
+	2'b01: begin
+	   wb.dat_i = dout_res;
+	end
+	default: begin
+	   wb.dat_i = {csr, 24'h0};
+	end
+      endcase
+   end
+
    // You must also create the control logic...
    				      
    // 8 point DCT
    // control: dcten
    dct dct0
      (.y(y), .x(x), 
-      .clk_i(wb.clk), .en(mmem.dcten)
+      .clk_i(wb.clk), .en(dct_enable)
    );
 
-   logic 	dct_mux_sel;
-   logic [63:0] ram_to_dct;
-   
 
+   always_ff @(posedge wb.clk) begin
+      ram_to_dct_reg <= dob;
+   end
+
+   assign ram_to_dct = {ram_to_dct_reg, dob};
+
+   
    always_comb begin
       if (dct_mux_sel) begin
 	 x = ut;
@@ -197,7 +246,7 @@
 
    transpose tmem
      (.clk(wb.clk), .rst(wb.rst), 
-      .wr(mmem.twr) , .rd(mmem.trd), 
+      .wr(t_wr) , .rd(t_rd), 
       .in({y[7][11:0],y[6][11:0],y[5][11:0],y[4][11:0],y[3][11:0],y[2][11:0],y[1][11:0],y[0][11:0]}), 
       .ut(ut));
 
@@ -206,9 +255,6 @@
 		.rst_i(wb.rst),
 		.stb_i(wb.stb),
 		.ack_o(wb.ack));
-
-   logic [31:0] rec;
-   logic [1:0] 	q2_mux_sel;
    
    
 
@@ -233,15 +279,6 @@
 	end
       endcase // case (q2_mux_sel)
    end // always_comb begin
-
-   logic t_rd;
-   logic t_wr;
-   logic count_in_enable;
-   logic count_out_enable;
-   logic count_in_rst;
-   logic count_out_rst;
-   logic dct_enable;
-   logic dct_mux_sel;
    
    
    
@@ -261,7 +298,8 @@
 			    .count_out_rst(count_out_rst),
 			    .dct_enable(dct_enable),
 			    .dct_mux_sel(dct_mux_sel),
-			    .q2_mux_sel(q2_mux_sel));
+			    .q2_mux_sel(q2_mux_sel)
+			    .rec_o(rec));
 
       
    
@@ -296,19 +334,32 @@ module wb_ctrl_module(
 endmodule // wb_ctrl
 
 module dct_ctrl_module(
-		input clk_i, rst_i, stb_i, we_i
-		input [31:0] dat_o, adr_i,
-		output [7:0] csr_o,
-		output t_rd, t_wr, count_in_enable, count_out_enable,
-		output [1:0] q2_mux_sel,
-		output dct_mux_sel, dct_enable, count_in_rst, count_out_rst);
+		       input clk_i, rst_i, stb_i, we_i
+		       input [31:0] dat_o, adr_i,
+		       output [7:0] csr_o,
+		       output t_rd, t_wr, count_in_enable, count_out_enable,
+		       output [1:0] q2_mux_sel,
+		       output dct_mux_sel, dct_enable, count_in_rst, count_out_rst,
+		       output [31:0] rec_o);
    
    typedef enum        {IDLE, FIRST1, FIRST2, FIRST3, FIRST4, FIRST5, FIRST_STAGE_DONE,
 			SECOND1, SECOND2, SECOND3, SECOND4, SECOND5, SECOND6, DCT_DONE} state_t;
    state_t state;
+
+   parameter [15:0] rec [0:63] = {2048, 2731, 2341, 2341, 1820, 1365, 669, 455, 
+				  2979, 2731, 2521, 1928, 1489, 936, 512, 356, 
+				  3277, 2341, 2048, 1489, 886, 596, 420, 345, 
+				  2048, 1725, 1365, 1130, 585, 512, 377, 334, 
+				  1365, 1260, 819, 643, 482, 405, 318, 293, 
+				  819, 565, 585, 377, 301, 315, 271, 328, 
+				  643, 546, 485, 410, 318, 290, 273, 318, 
+				  537, 596, 585, 529, 426, 356, 324, 331};
+   
    logic [7:0] 	       csr;
    logic [1:0] 	       dct_state_counter;
    logic [1:0] 	       q2_loop_counter;
+   logic [5:0] 	       rec_offset;
+   
    
    assign csr_o = csr;
    assign q2_mux_sel = q2_loop_counter;
@@ -418,8 +469,25 @@ module dct_ctrl_module(
    end // always_ff @ (posedge clk_i)
 
    logic [1:0] csr_mux_sel;
-   
 
+
+   always_comb begin
+      case (state)
+	SECOND5: begin
+	   rec_offset = 6'd32;
+	end
+	SECOND6: begin
+	   rec_offset = 6'd56;
+	end
+	default: begin
+	   rec_offset = 6'h0;
+	end
+      endcase
+   end // always_comb begin
+
+   assign rec_o = {rec[rec_offset + 8*dct_state_counter + 2*q2_loop_counter],
+		   rec[rec_offset + 8*dct_state_counter + 2*q2_loop_counter +1]};
+   
    always_comb begin
       t_wr = 1'b0;
       t_rd = 1'b0;
@@ -492,7 +560,7 @@ module dct_ctrl_module(
 	      csr <= {1'b1, csr[6:0]};
 	   end
 	   default: begin
-	      if (we_i && stb_i && adr_i[15:0] == 16'h1000) begin
+	      if (we_i && stb_i && adr_i[12:11] == 2'b10) begin
 		 csr = dat_o[31:24];
 	      end 
 	   end
