@@ -1,6 +1,6 @@
 `include "include/timescale.v"
 
-module transpose(input logic clk, rst, wr , rd, 
+module transpose(input logic clk, wr , rd, 
 		 input logic [95:0] in, 
 		 output logic [95:0] ut);
    // Here you have to design the transpose memory
@@ -43,7 +43,6 @@ module transpose(input logic clk, rst, wr , rd,
 		.bits_o_wr(row45));
    row_reg row5(
 		.clk(clk),
-		.rst(rst),
 		.wr(wr),
 		.rd(rd),
 		.bits_i(row45),

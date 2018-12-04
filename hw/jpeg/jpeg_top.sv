@@ -245,7 +245,7 @@
    // control: trd, twr
 
    transpose tmem
-     (.clk(wb.clk), .rst(wb.rst), 
+     (.clk(wb.clk), 
       .wr(t_wr) , .rd(t_rd), 
       .in({y[7][11:0],y[6][11:0],y[5][11:0],y[4][11:0],y[3][11:0],y[2][11:0],y[1][11:0],y[0][11:0]}), 
       .ut(ut));
@@ -298,7 +298,7 @@
 			    .count_out_rst(count_out_rst),
 			    .dct_enable(dct_enable),
 			    .dct_mux_sel(dct_mux_sel),
-			    .q2_mux_sel(q2_mux_sel)
+			    .q2_mux_sel(q2_mux_sel),
 			    .rec_o(rec));
 
       
@@ -334,13 +334,13 @@ module wb_ctrl_module(
 endmodule // wb_ctrl
 
 module dct_ctrl_module(
-		       input clk_i, rst_i, stb_i, we_i
+		       input clk_i, rst_i, stb_i, we_i,
 		       input [31:0] dat_o, adr_i,
-		       output [7:0] csr_o,
-		       output t_rd, t_wr, count_in_enable, count_out_enable,
-		       output [1:0] q2_mux_sel,
-		       output dct_mux_sel, dct_enable, count_in_rst, count_out_rst,
-		       output [31:0] rec_o);
+		       output logic [7:0] csr_o,
+		       output logic t_rd, t_wr, count_in_enable, count_out_enable,
+		       output logic [1:0] q2_mux_sel,
+		       output logic dct_mux_sel, dct_enable, count_in_rst, count_out_rst,
+		       output logic [31:0] rec_o);
    
    typedef enum        {IDLE, FIRST1, FIRST2, FIRST3, FIRST4, FIRST5, FIRST_STAGE_DONE,
 			SECOND1, SECOND2, SECOND3, SECOND4, SECOND5, SECOND6, DCT_DONE} state_t;
