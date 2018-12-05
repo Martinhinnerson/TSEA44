@@ -46,8 +46,34 @@ static const int reciprocals[] = {2048, 2979, 3277, 2048, 1365, 819, 643, 537,
 
 void dct2(int *data);
 void dct1(int *a, int *p);
+void main_dct();
 
 int main()
+{
+  ic_disable();
+  dc_disable();
+  printf("IC and DC disabled\n");
+  main_dct();
+
+  ic_disable();
+  dc_enable();
+  printf("IC disabled, DC enabled\n");
+  main_dct();
+
+  ic_enable();
+  dc_disable();
+  printf("IC enabled, DC disabled\n");
+  main_dct();
+
+  ic_enable();
+  dc_enable();
+  printf("IC and DC enabled\n");
+  main_dct();
+
+  return (0);
+}
+
+void main_dct()
 {
   int i, j, temp, rval, rnd, bits, pos;
   int ctr0, ctr1, ctr2, ctr3;
@@ -110,8 +136,6 @@ int main()
   printf("ctr2: %d \n", ctr2);
   printf("ctr3: %d \n", ctr3);
 // =============================================================================
-
-  return (0);
 }
 
 void dct2(int *data)
