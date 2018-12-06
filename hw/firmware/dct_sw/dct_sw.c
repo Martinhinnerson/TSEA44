@@ -52,22 +52,22 @@ int main()
 {
   ic_disable();
   dc_disable();
-  printf("IC and DC disabled\n");
+  printf("******************************\nIC and DC disabled\n");
   main_dct();
 
   ic_disable();
   dc_enable();
-  printf("IC disabled, DC enabled\n");
+  printf("******************************\nIC disabled, DC enabled\n");
   main_dct();
 
   ic_enable();
   dc_disable();
-  printf("IC enabled, DC disabled\n");
+  printf("******************************\nIC enabled, DC disabled\n");
   main_dct();
 
   ic_enable();
   dc_enable();
-  printf("IC and DC enabled\n");
+  printf("******************************\nIC and DC enabled\n");
   main_dct();
 
   return (0);
@@ -78,20 +78,36 @@ void main_dct()
   int i, j, temp, rval, rnd, bits, pos;
   int ctr0, ctr1, ctr2, ctr3;
 
-  printf("\na=\n");
+  //printf("\na=\n");
   for (i = 0; i < 8; i++)
   {
     for (j = 0; j < 8; j++)
-      printf("%5d ", image[j + 8 * i] = j + 8 * i + 1);
-    printf("\n");
+      //printf("%5d ", image[j + 8 * i] = j + 8 * i + 1);
+      image[j + 8 * i] = j + 8 * i + 1;
+    //printf("\n");
   }
 
 // =============================================================================
   //Added: reset counters
   REG32(0x99000000) = 0;
+  ctr0 = REG32(0x99000000);
   REG32(0x99000004) = 0;
+  ctr1 = REG32(0x99000004);
   REG32(0x99000008) = 0;
+  ctr2 = REG32(0x99000008);
   REG32(0x9900000c) = 0;
+  ctr3 = REG32(0x9900000c);
+// =============================================================================
+// =============================================================================
+  // Added: print counters
+  //ctr0 = REG32(0x99000000);
+  //ctr1 = REG32(0x99000004);
+  //ctr2 = REG32(0x99000008);
+  //ctr3 = REG32(0x9900000c);
+  printf("ctr0: %d \n", ctr0);
+  printf("ctr1: %d \n", ctr1);
+  printf("ctr2: %d \n", ctr2);
+  printf("ctr3: %d \n", ctr3);
 // =============================================================================
   dct2(image);
   image[0] -= 8192;
@@ -100,12 +116,12 @@ void main_dct()
   for (i = 0; i < 8; i++)
   {
     for (j = 0; j < 8; j++)
-      printf("%5d ", image[j + 8 * i]);
-    printf("\n");
+       printf("%5d ", image[j + 8 * i]);
+      printf("\n");
   }
 
   // Quantization
-  printf("\nRND(8xDCT[a-128]/(8xQx1/2))=\n");
+  //printf("\nRND(8xDCT[a-128]/(8xQx1/2))=\n");
   for (i = 0; i < 8; i++)
   {
     for (j = 0; j < 8; j++)
@@ -121,9 +137,9 @@ void main_dct()
       temp = temp >> 17;
       temp += rnd && (pos || bits);
 
-      printf("%5d ", temp);
+      //printf("%5d ", temp);
     }
-    printf("\n");
+    //printf("\n");
   }
 // =============================================================================
   // Added: print counters

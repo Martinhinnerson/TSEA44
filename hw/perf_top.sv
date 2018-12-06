@@ -12,7 +12,7 @@ module perf_top
    
    assign 	wb.rty = 1'b0;	// not used in this course
    assign 	wb.err = 1'b0;  // not used in this course
-   assign 	wb.ack = wb.stb && wb.cyc; // change if needed
+
    
    logic [31:0] ctr0,ctr1,ctr2,ctr3;
    logic 	rst0,rst1,rst2,rst3;
@@ -23,6 +23,21 @@ module perf_top
    assign rst1 = (wb.stb && wb.we && wb.adr == 32'h99000004);
    assign rst2 = (wb.stb && wb.we && wb.adr == 32'h99000008);
    assign rst3 = (wb.stb && wb.we && wb.adr == 32'h9900000c);
+
+
+   logic 	ack;
+   
+   
+   always_ff @(posedge wb.clk) begin
+      if(wb.rst)
+	ack <= 1'b0;
+      else if(ack)
+	ack <= 1'b0;
+      else if(wb.stb && wb.cyc)
+	ack <= 1'b1;
+   end
+   
+   assign 	wb.ack = ack; // change if needed
    
    //Counter 0
    always_ff @(posedge wb.clk) begin
@@ -85,7 +100,7 @@ module perf_top
    end 
    
    
-   always_comb begin
+   always_ff @(posedge wb.clk) begin
       case (wb.adr)
          32'h99000000: begin
             out <= ctr0;
@@ -106,9 +121,11 @@ module perf_top
    end
    
    assign wb.dat_i = out;
-   
-   
+
 endmodule // perf_top
+
+
+ // perf_top
 // Local Variables:
 // verilog-library-directories:("." "or1200" "jpeg" "pkmc" "dvga" "uart" "monitor" "lab1" "dafk_tb" "eth" "wb" "leela")
 // End:

@@ -68,6 +68,11 @@ int main(void) {
 
   tmp = (tmp & 0x00ffff00) >> 8; // Get the build number
 
+  REG32(0x99000000) = 0;
+  
+  int tmp2 = REG32(0x99000000);
+
+
   printf("\nmonitor " BUILDTIME " HW: type %s, build #%d\n\n",hwtype,tmp);
 
   REG32(PAR_BASE_ADDR) = 6;
