@@ -108,11 +108,11 @@ endmodule // mem
 
 program test_jpeg();
    int result = 0;
-   int d = 32'h81828384;	// subtract 128 => d = {-127,-126,-125,-124}
+   int d = 32'h01020304;	// subtract 128 => d = {-127,-126,-125,-124}
 
    initial begin
 
-     
+     //Denna skriver var 4e rad i inmem
       for (int i=0; i<16; i++) begin
 	 jpeg_top_tb.wb0.m_write(32'h96000000 + 4*i, d);
 	 d += 32'h04040404;
@@ -123,6 +123,8 @@ program test_jpeg();
       while (result != 32'h80000000)
 	jpeg_top_tb.wb0.m_read(32'h96001000,result);
 
+
+      //Denna läser varje rad i utmem
       for (int j=0; j<8; j++) begin
 	 for (int i=0; i<4; i++) begin
 	    jpeg_top_tb.wb0.m_read(32'h96000800 + 4*i + j*16,result);
@@ -132,6 +134,9 @@ program test_jpeg();
 	 $fwrite(1,"\n");
       end
 
+      
+
+/* -----\/----- EXCLUDED -----\/-----
       // Init DMA-engine
       jpeg_top_tb.wb0.m_write(32'h96001800, 32'h0); // DMA_ADDR
       jpeg_top_tb.wb0.m_write(32'h96001804, (`WIDTH*8)); // PITCH
@@ -139,14 +144,14 @@ program test_jpeg();
       jpeg_top_tb.wb0.m_write(32'h9600180c, `HEIGHT-1); // HEIGHT - 1
       jpeg_top_tb.wb0.m_write(32'h96001810, 32'h1); // start DMA engine
 
-
+      
       for (int blocky=0; blocky<`HEIGHT; blocky++) begin
 	 for (int blockx=0; blockx<`WIDTH; blockx++) begin
 	    // Wait for DCTDMA to fill the DCT accelerator
 	    result = 0;
 	    while (! (result & 2)) // wait for block to finish
 	      jpeg_top_tb.wb0.m_read(32'h96001810, result);
-
+	    
 	    $display("blocky=%5d blockx=%5d", blocky, blockx);
 	    
 	    for (int j=0; j<8; j++) begin
@@ -157,11 +162,12 @@ program test_jpeg();
 	       end
 	       $fwrite(1,"\n");
 	    end
-
+	    
 	    jpeg_top_tb.wb0.m_write(32'h96001810, 32'h2); // start next block
-	  end
+	 end
       end
-
+ -----/\----- EXCLUDED -----/\----- */
+      
    end
 
 endprogram // tester

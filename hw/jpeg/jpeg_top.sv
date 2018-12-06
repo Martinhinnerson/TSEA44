@@ -61,8 +61,8 @@
 
    logic [31:0] 	 dout_res;
    logic 		 ce_in, ce_ut;
-   logic [3:0] 		 rdc;
-   logic [4:0] 		 wrc;
+   logic [8:0] 		 rdc;
+   logic [8:0] 		 wrc;
 
    logic [31:0] 	 dob, ut_doa;
    
@@ -136,17 +136,17 @@
 
    always_ff @(posedge wb.clk) begin
       if (wb.rst || count_out_rst) begin
-	 wrc <= 5'h0;
+	 wrc <= 9'h0;
       end else if (count_out_enable) begin 
-	 wrc <= wrc + 1'b1;
+	 wrc <= wrc + 9'h1;
       end
    end
 
    always_ff @(posedge wb.clk) begin
       if (wb.rst || count_in_rst) begin
-	 rdc <= 4'h0;
+	 rdc <= 9'h0;
       end else if (count_in_enable) begin
-	 rdc <= rdc + 1'b1;
+	 rdc <= rdc + 9'h4;
       end
    end
    
@@ -180,7 +180,7 @@
       .DOA(doa), .DOPA(),
       // DCT read
       .CLKB(wb.clk), .SSRB(wb.rst),
-      .ADDRB({5'h0,rdc}),
+      .ADDRB(rdc),
       .DIB(32'h0), .DIPB(4'h0), 
       .ENB(1'b1),.WEB(1'b0), 
       .DOB(dob), .DOPB());
@@ -188,8 +188,8 @@
    RAMB16_S36_S36 #(.SIM_COLLISION_CHECK("NONE")) utmem
      (// DCT write
       .CLKA(wb.clk), .SSRA(wb.rst),
-      .ADDRA({4'h0,wrc}),
-      .DIA(q), .DIPA(4'h0), .ENA(1'b1),
+      .ADDRA(wrc),
+      .DIA(dia), .DIPA(4'h0), .ENA(1'b1),
       .WEA(count_out_enable), .DOA(ut_doa), .DOPA(),
       // WB read & write
       .CLKB(wb.clk), .SSRB(wb.rst),
@@ -234,10 +234,10 @@
       if (dct_mux_sel) begin
 	 x = ut;
       end else begin
-	 x = {4'h0,ram_to_dct[63:56], 4'h0,ram_to_dct[55:48],
-	      4'h0,ram_to_dct[47:40], 4'h0,ram_to_dct[39:32],
-	      4'h0,ram_to_dct[31:24], 4'h0,ram_to_dct[23:16],
-	      4'h0,ram_to_dct[15:8], 4'h0,ram_to_dct[7:0]};
+	 x = {{4{ram_to_dct[63]}},ram_to_dct[63:56], {4{ram_to_dct[55]}},ram_to_dct[55:48],
+	      {4{ram_to_dct[47]}},ram_to_dct[47:40], {4{ram_to_dct[39]}},ram_to_dct[39:32],
+	      {4{ram_to_dct[31]}},ram_to_dct[31:24], {4{ram_to_dct[23]}},ram_to_dct[23:16],
+	      {4{ram_to_dct[15]}},ram_to_dct[15:8], {4{ram_to_dct[7]}},ram_to_dct[7:0]};
       end
    end
    
@@ -247,7 +247,7 @@
    transpose tmem
      (.clk(wb.clk), 
       .wr(t_wr) , .rd(t_rd), 
-      .in({y[7][11:0],y[6][11:0],y[5][11:0],y[4][11:0],y[3][11:0],y[2][11:0],y[1][11:0],y[0][11:0]}), 
+      .in({y[0][11:0],y[1][11:0],y[2][11:0],y[3][11:0],y[4][11:0],y[5][11:0],y[6][11:0],y[7][11:0]}), 
       .ut(ut));
 
    wb_ctrl_module wb_ctrl(
@@ -266,16 +266,16 @@
    always_comb begin
       case (q2_mux_sel)
 	2'b00: begin
-	   q = {y[1][15:0],y[0][15:0]};
+	   q = {y[6][15:0],y[7][15:0]};
 	end
 	2'b01: begin
-	   q = {y[3][15:0],y[2][15:0]};
+	   q = {y[4][15:0],y[5][15:0]};
 	end
 	2'b10: begin
-	   q = {y[5][15:0],y[4][15:0]};
+	   q = {y[2][15:0],y[3][15:0]};
 	end
 	default: begin
-	   q = {y[7][15:0],y[6][15:0]};
+	   q = {y[0][15:0],y[1][15:0]};
 	end
       endcase // case (q2_mux_sel)
    end // always_comb begin
@@ -342,8 +342,8 @@ module dct_ctrl_module(
 		       output logic dct_mux_sel, dct_enable, count_in_rst, count_out_rst,
 		       output logic [31:0] rec_o);
    
-   typedef enum        {IDLE, FIRST1, FIRST2, FIRST3, FIRST4, FIRST5, FIRST_STAGE_DONE,
-			SECOND1, SECOND2, SECOND3, SECOND4, SECOND5, SECOND6, DCT_DONE} state_t;
+   typedef enum        {IDLE, INIT, FIRST1, FIRST2, FIRST3, FIRST4, FIRST5, FIRST_STAGE_DONE,
+			SECOND1, SECOND2, SECOND3, SECOND4, SECOND5, SECOND6, SECOND7, DCT_DONE} state_t;
    state_t state;
 
    parameter [15:0] rec [0:63] = {2048, 2731, 2341, 2341, 1820, 1365, 669, 455, 
@@ -372,9 +372,12 @@ module dct_ctrl_module(
 	 case (state)
 	   IDLE: begin
 	      if (csr[0]) begin
-		 state <= FIRST1;
+		 state <= INIT;
 		 dct_state_counter <= 2'd3;
 	      end
+	   end
+	   INIT: begin
+	      state <= FIRST1;
 	   end
 	   FIRST1: begin
 	      state <= FIRST2;
@@ -421,9 +424,10 @@ module dct_ctrl_module(
 	      end
 	   end
 	   SECOND2: begin
-	      if (dct_state_counter == 2'h0) begin
+	      if (dct_state_counter == 2'h0 && q2_loop_counter == 2'h0) begin //adde q2 here
 		 state <= SECOND4;
-		 dct_state_counter <= 2'd2;
+		 dct_state_counter <= 2'd3; //why 2?
+		 q2_loop_counter <= 2'd3; //added this
 	      end else if (q2_loop_counter == 2'h0) begin
 		 state <= SECOND3;
 		 dct_state_counter <= dct_state_counter - 1'b1;
@@ -441,7 +445,7 @@ module dct_ctrl_module(
 	   SECOND5: begin
 	      if (dct_state_counter == 2'h0) begin
 		 state <= SECOND6;
-		 q2_loop_counter <= 2'd3;
+		 q2_loop_counter <= 2'd2; //changed to 2 from 3
 	      end else if (q2_loop_counter == 2'h0) begin
 		 state <= SECOND4;
 		 dct_state_counter <= dct_state_counter - 1'b1;
@@ -456,6 +460,9 @@ module dct_ctrl_module(
 	      end else begin
 		 q2_loop_counter <= q2_loop_counter - 1'b1;
 	      end
+	   end
+	   SECOND7: begin //added state
+	      state <= DCT_DONE;
 	   end
 	   DCT_DONE: begin
 	      state <= IDLE;
@@ -476,7 +483,7 @@ module dct_ctrl_module(
 	SECOND5: begin
 	   rec_offset = 6'd32;
 	end
-	SECOND6: begin
+	SECOND7: begin //maybe change this
 	   rec_offset = 6'd56;
 	end
 	default: begin
@@ -485,8 +492,25 @@ module dct_ctrl_module(
       endcase
    end // always_comb begin
 
+   logic [6:0] rec_counter;
+   
+   
+   always_ff @(posedge wb.clk) begin
+      if(wb.rst || count_out_rst) begin
+	 rec_counter <= 7'h0;
+      end
+      else if(count_out_enable) begin
+	 rec_counter <= rec_counter + 2'd2;
+      end
+   end
+
+   assign rec_o = {rec[rec_counter], rec[rec_counter + 1]};
+   
+   
+/* -----\/----- EXCLUDED -----\/-----
    assign rec_o = {rec[rec_offset + 8*dct_state_counter + 2*q2_loop_counter],
 		   rec[rec_offset + 8*dct_state_counter + 2*q2_loop_counter +1]};
+ -----/\----- EXCLUDED -----/\----- */
    
    always_comb begin
       t_wr = 1'b0;
@@ -501,11 +525,15 @@ module dct_ctrl_module(
       case (state)
 	IDLE: begin
 	end
+	INIT: begin
+	   count_in_rst = 1'b0;
+	   count_in_enable = 1'b1;
+	end
 	FIRST1: begin
 	   count_in_rst = 1'b0;
 	   count_in_enable = 1'b1;
 	end
-	FIRST2 | FIRST4: begin
+	FIRST2, FIRST4: begin
 	   count_in_rst = 1'b0;
 	   count_in_enable = 1'b1;
 	   dct_enable = 1'b1;
@@ -527,18 +555,21 @@ module dct_ctrl_module(
 	   dct_mux_sel = 1'b1;
 	   dct_enable = 1'b1;
 	end
-	SECOND2 | SECOND5 | SECOND6: begin
+	SECOND2, SECOND5, SECOND6: begin
 	   count_out_enable = 1'b1;
 	   count_out_rst = 1'b0;
+	   dct_mux_sel = 1'b1;
 	end
 	SECOND3: begin
 	   t_rd = 1'b1;
 	   dct_enable = 1'b1;
 	   count_out_rst = 1'b0;
+	   dct_mux_sel = 1'b1;
 	end
-	SECOND4: begin
+	SECOND4, SECOND7: begin
 	   dct_enable = 1'b1;
 	   count_out_rst = 1'b0;
+	   dct_mux_sel = 1'b1;
 	end
 	DCT_DONE: begin
 	   csr_mux_sel = 2'b10;

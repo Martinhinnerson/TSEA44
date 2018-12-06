@@ -72,14 +72,14 @@ endmodule
 
 // Låt DCT läsa av första kolumnen innan rd sätts
 module row_reg(input logic clk, wr, rd,
-	       input logic [95:0] bits_i,
-	       output logic [11:0] bits_o_rd,
-	       output logic [95:0] bits_o_wr);
+	       input logic [0:95] bits_i,
+	       output logic [0:11] bits_o_rd,
+	       output logic [0:95] bits_o_wr);
 
    logic [1:0] 			    input_select;
    assign input_select = {wr,rd};
 
-   logic [95:0] 		    shift_reg;
+   logic [0:95] 		    shift_reg;
 
    always_ff @(posedge clk) begin
       case (input_select)
@@ -87,14 +87,14 @@ module row_reg(input logic clk, wr, rd,
 	   shift_reg <= bits_i;
 	end
 	2'b01: begin
-	   shift_reg <= {shift_reg[83:0],16'h0};
+	   shift_reg <= {shift_reg[12:95],12'h0};
 	end
 	default: begin
 	end
       endcase
    end
 
-   assign bits_o_rd = shift_reg[95:84];
+   assign bits_o_rd = shift_reg[0:11];
    assign bits_o_wr = shift_reg;
       
 endmodule
