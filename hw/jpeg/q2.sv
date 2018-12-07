@@ -26,12 +26,7 @@ module q2(output[31:0] x_o,
    
    
    assign round_first_pixel = {mult_first_pixel[31] , mult_first_pixel[31:17]} + rnd_first;
-   assign round_second_pixel = {mult_second_pixel[31], mult_second_pixel[31:17]} + rnd_second;
-   
-   
-   //assign round_first_pixel = (mult_first_pixel >>> 17) + (mult_first_pixel[16] && ((mult_first_pixel == 32'h80000000) || (mult_first_pixel == 32'hFFFF)));
-   //assign round_second_pixel = (mult_second_pixel >>> 17) + (mult_second_pixel[16] && ((mult_second_pixel == 32'h80000000) || (mult_second_pixel == 32'hFFFF)));
-   
+   assign round_second_pixel = {mult_second_pixel[31], mult_second_pixel[31:17]} + rnd_second;   
 
    // Set output
    assign x_o = {round_first_pixel[15:0], round_second_pixel[15:0]};

@@ -109,6 +109,8 @@ endmodule // mem
 program test_jpeg();
    int result = 0;
    int d = 32'h01020304;	// subtract 128 => d = {-127,-126,-125,-124}
+   int d2 = 32'hffffffff;
+   
 
    initial begin
 
@@ -116,7 +118,16 @@ program test_jpeg();
       for (int i=0; i<16; i++) begin
 	 jpeg_top_tb.wb0.m_write(32'h96000000 + 4*i, d);
 	 d += 32'h04040404;
-      end 
+      end
+     /* for (int i=0; i<4; i++) begin
+	 jpeg_top_tb.wb0.m_write(32'h96000000 + 4*2*i, d);
+	 jpeg_top_tb.wb0.m_write(32'h96000000 + 4*2*i+4, d2);
+      end
+      for (int i = 4; i<8; i++) begin
+	 jpeg_top_tb.wb0.m_write(32'h96000000 + 4*2*i, d2);
+	 jpeg_top_tb.wb0.m_write(32'h96000000 + 4*2*i+4, d);
+	 //d = ~d;   //32'h04040404;
+      end */
 
       jpeg_top_tb.wb0.m_write(32'h96001000, 32'h01000000);
       

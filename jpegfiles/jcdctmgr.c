@@ -60,7 +60,7 @@ void init_image(unsigned char *t,unsigned int image_width, unsigned int image_he
    width = image_width;
    height = image_height;
 
-#endif
+   //#endif
 
 }
 
@@ -81,9 +81,9 @@ void forward_DCT (short coef_block[DCTSIZE2])
   int *pr=reciprocals;
   short *pc=coef_block;
   int y,x; // The current position within the MCU
-  int temp, i,rval;
+  int temp, i,rval,j;
   unsigned int startcycle = gettimer();
-
+  
 #ifdef HW_DMA
   #ifdef HW_DCT
   // 1) Wait for DMA_DCT_Q to complete a block
@@ -93,10 +93,54 @@ void forward_DCT (short coef_block[DCTSIZE2])
 #else
   #ifdef HW_DCT
   // 1) copy values from image to block RAM instead
-  // 2) subtract 128 in SW
+  int addr_offset = 0;
+  int result = 0;
+  int pixels = 0;
+  for (y = 0; y < DCTSIZE; y++, pb += (width - DCTSIZE)) {
+    for (x = 0; x < 2; x++) {
+      pixels += ((int) *pb++) << 24;
+      pixels += ((int) *pb++) << 16;
+      pixels += ((int) *pb++) << 8;
+      pixels += ((int) *pb++);
+      REG32(0x96000000 + addr_offset) = pixels;
+      addr_offset += 4;
+    }
+  }
+  // 2) subtract 128 in SW (SKIP)
   // 3) start DCT_Q
+  REG32(0x96001000) = 0x01000000;
+  col += DCTSIZE;
+  if (col >= width){
+    col = 0;
+    row += DCTSIZE;
+  }
+  perf_copy += gettimer() - startcycle;
+
+
   // 4) wait for it to finish
+  while (!result){
+    result = (REG32(0x96001000) & 0x80000000);
+  }
   // 5) read out, transpose, convert from 16 to 32 bit 
+  addr_offset = 0;
+  short block[8][8];
+  int tmp;
+  for (i=0; i < 8; i++) {
+    for (j=0; j < 4; j++) {
+      result = REG32(0x96000800 + addr_offset);
+      addr_offset += 4;
+      tmp = result;
+      block[2*j][i] = (short) (result >> 16);
+      block[2*j+1][i] = (short) (tmp & 0x0000ffff);
+    }
+  }
+
+  for (i = 0; i < 8; i++) {
+    for (j = 0; j < 8; j++) {
+      *pc++ = block[i][j];
+    }
+  }
+
   #else
   // 1) Load data into workspace, applying unsigned->signed conversion
   // 2) subtract 128 (JPEG)

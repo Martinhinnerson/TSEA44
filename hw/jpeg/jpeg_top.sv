@@ -129,7 +129,7 @@
    // You must create the signals to the block ram somewhere...
 
    assign bram_data = {~wb.dat_o[31], wb.dat_o[30:24], ~wb.dat_o[23], wb.dat_o[22:16], ~wb.dat_o[15], wb.dat_o[14:8], ~wb.dat_o[7], wb.dat_o[6:0]};
-   assign bram_addr = wb.adr[8:0];
+   assign bram_addr = wb.adr[10:2];
    assign bram_we = wb.we;
    assign bram_ce = ce_in;
       
@@ -146,7 +146,7 @@
       if (wb.rst || count_in_rst) begin
 	 rdc <= 9'h0;
       end else if (count_in_enable) begin
-	 rdc <= rdc + 9'h4;
+	 rdc <= rdc + 9'h1;
       end
    end
    
@@ -193,7 +193,7 @@
       .WEA(count_out_enable), .DOA(ut_doa), .DOPA(),
       // WB read & write
       .CLKB(wb.clk), .SSRB(wb.rst),
-      .ADDRB(wb.adr[10:2]),
+      .ADDRB(bram_addr),
       .DIB(wb.dat_o), .DIPB(4'h0), .ENB(ce_ut),
       .WEB(wb.we), .DOB(dout_res), .DOPB());
 
@@ -343,10 +343,10 @@ module dct_ctrl_module(
 		       output logic [31:0] rec_o);
    
    typedef enum        {IDLE, INIT, FIRST1, FIRST2, FIRST3, FIRST4, FIRST5, FIRST_STAGE_DONE,
-			SECOND1, SECOND2, SECOND3, SECOND4, SECOND5, SECOND6, SECOND7, DCT_DONE} state_t;
+			SECOND1, SECOND2, SECOND3, SECOND4, SECOND5, SECOND6, DCT_DONE} state_t;
    state_t state;
 
-   parameter [15:0] rec [0:63] = {2048, 2731, 2341, 2341, 1820, 1365, 669, 455, 
+   parameter [15:0] rec [0:63] = '{2048, 2731, 2341, 2341, 1820, 1365, 669, 455, 
 				  2979, 2731, 2521, 1928, 1489, 936, 512, 356, 
 				  3277, 2341, 2048, 1489, 886, 596, 420, 345, 
 				  2048, 1725, 1365, 1130, 585, 512, 377, 334, 
@@ -358,7 +358,6 @@ module dct_ctrl_module(
    logic [7:0] 	       csr;
    logic [1:0] 	       dct_state_counter;
    logic [1:0] 	       q2_loop_counter;
-   logic [5:0] 	       rec_offset;
    
    
    assign csr_o = csr;
@@ -461,9 +460,6 @@ module dct_ctrl_module(
 		 q2_loop_counter <= q2_loop_counter - 1'b1;
 	      end
 	   end
-	   SECOND7: begin //added state
-	      state <= DCT_DONE;
-	   end
 	   DCT_DONE: begin
 	      state <= IDLE;
 	   end
@@ -476,27 +472,11 @@ module dct_ctrl_module(
    end // always_ff @ (posedge clk_i)
 
    logic [1:0] csr_mux_sel;
-
-
-   always_comb begin
-      case (state)
-	SECOND5: begin
-	   rec_offset = 6'd32;
-	end
-	SECOND7: begin //maybe change this
-	   rec_offset = 6'd56;
-	end
-	default: begin
-	   rec_offset = 6'h0;
-	end
-      endcase
-   end // always_comb begin
-
    logic [6:0] rec_counter;
    
    
-   always_ff @(posedge wb.clk) begin
-      if(wb.rst || count_out_rst) begin
+   always_ff @(posedge clk_i) begin
+      if(rst_i || count_out_rst) begin
 	 rec_counter <= 7'h0;
       end
       else if(count_out_enable) begin
@@ -566,7 +546,7 @@ module dct_ctrl_module(
 	   count_out_rst = 1'b0;
 	   dct_mux_sel = 1'b1;
 	end
-	SECOND4, SECOND7: begin
+	SECOND4: begin
 	   dct_enable = 1'b1;
 	   count_out_rst = 1'b0;
 	   dct_mux_sel = 1'b1;
@@ -592,7 +572,7 @@ module dct_ctrl_module(
 	   end
 	   default: begin
 	      if (we_i && stb_i && adr_i[12:11] == 2'b10) begin
-		 csr = dat_o[31:24];
+		 csr <= dat_o[31:24];
 	      end 
 	   end
 	 endcase
