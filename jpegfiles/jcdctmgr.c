@@ -92,6 +92,11 @@ void forward_DCT (short coef_block[DCTSIZE2])
   #endif
 #else
   #ifdef HW_DCT
+
+  // ===========================================================================
+  // ADDED CODE HERE
+  // ===========================================================================
+
   // 1) copy values from image to block RAM instead
   int addr_offset = 0;
   int result = 0;
@@ -119,6 +124,7 @@ void forward_DCT (short coef_block[DCTSIZE2])
     result = (REG32(0x96001000) & 0x80000000);
   }
   perf_dctkernel += gettimer() - startcycle;
+  
   // 5) read out, transpose, convert from 16 to 32 bit 
   addr_offset = 0;
   short block[8][8];
@@ -138,7 +144,11 @@ void forward_DCT (short coef_block[DCTSIZE2])
       *pc++ = block[i][j];
     }
   }
-  
+
+  // ===========================================================================
+  // 
+  // ===========================================================================
+
   #else
   // 1) Load data into workspace, applying unsigned->signed conversion
   // 2) subtract 128 (JPEG)
