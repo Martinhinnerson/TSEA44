@@ -102,18 +102,18 @@ void forward_DCT (short coef_block[DCTSIZE2])
       addr_offset += 4;
     }
   }
-  perf_copy += gettimer() - startcycle;
-  // 2) subtract 128 in SW (SKIP)
-  // 3) start DCT_Q
-  REG32(0x96001000) = 0x01000000;
   col += DCTSIZE;
   if (col >= width){
     col = 0;
     row += DCTSIZE;
   }
+  perf_copy += gettimer() - startcycle;
+
+  // 2) subtract 128 in SW (SKIP)
+  // 3) start DCT_Q
+
+  REG32(0x96001000) = 0x01000000;
   
-
-
   // 4) wait for it to finish
   while (!result){
     result = (REG32(0x96001000) & 0x80000000);
