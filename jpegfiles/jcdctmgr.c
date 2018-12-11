@@ -96,16 +96,13 @@ void forward_DCT (short coef_block[DCTSIZE2])
   int addr_offset = 0;
   int result = 0;
   int pixels = 0;
-  for (y = 0; y < DCTSIZE; y++, pb += (width - DCTSIZE)) {
+  for (y = 0; y < DCTSIZE; y++, pim += (width - DCTSIZE)/4) {
     for (x = 0; x < 2; x++) {
-      pixels += ((int) *pb++) << 24;
-      pixels += ((int) *pb++) << 16;
-      pixels += ((int) *pb++) << 8;
-      pixels += ((int) *pb++);
-      REG32(0x96000000 + addr_offset) = pixels;
+      REG32(0x96000000 + addr_offset) = *pim++;
       addr_offset += 4;
     }
   }
+  perf_copy += gettimer() - startcycle;
   // 2) subtract 128 in SW (SKIP)
   // 3) start DCT_Q
   REG32(0x96001000) = 0x01000000;
@@ -114,13 +111,14 @@ void forward_DCT (short coef_block[DCTSIZE2])
     col = 0;
     row += DCTSIZE;
   }
-  perf_copy += gettimer() - startcycle;
+  
 
 
   // 4) wait for it to finish
   while (!result){
     result = (REG32(0x96001000) & 0x80000000);
   }
+  perf_dctkernel += gettimer() - startcycle;
   // 5) read out, transpose, convert from 16 to 32 bit 
   addr_offset = 0;
   short block[8][8];
@@ -140,7 +138,7 @@ void forward_DCT (short coef_block[DCTSIZE2])
       *pc++ = block[i][j];
     }
   }
-
+  
   #else
   // 1) Load data into workspace, applying unsigned->signed conversion
   // 2) subtract 128 (JPEG)

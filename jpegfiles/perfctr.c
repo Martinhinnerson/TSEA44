@@ -22,7 +22,7 @@ void print_performance(void){
   printf("    +-- Cycles spent in forward_DCT:      %8u\n", perf_dct);
   printf("    |   +-- Cycles spent in copy:         %8u\n", perf_copy);
   printf("    |   +-- Cycles spent in DCT kernel:   %8u\n", perf_dctkernel);
-  printf("    |   +-- Cycles spent in quantization: %8u\n", perf_dct - perf_copy - perf_dctkernel);
+  printf("    |   +-- Cycles spent in read/transpose: %8u\n", perf_dct - perf_copy - perf_dctkernel);
   printf("    +-- Cycles spent in Huffman encoding: %8u\n", perf_huff);
   printf("        +-- Cycles spent in emit_bits:    %8u\n", perf_emitbits);
 }
