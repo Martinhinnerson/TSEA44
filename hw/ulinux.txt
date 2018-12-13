@@ -1,0 +1,6 @@
+cd /mnt
+tftp 192.168.0.102
+get jpegtest
+quit
+chmod 755 jpegtest
+jpegtest htdocs/result5.jpg
