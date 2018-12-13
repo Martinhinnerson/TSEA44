@@ -78,11 +78,6 @@ void init_image(unsigned char *t,unsigned int image_width, unsigned int image_he
    printf("endblock_y: %d \n", tmp);
 
    REG32(0x96001810) = 0x01;
-
-   tmp = REG32(0x96001810);
-   printf("tmp: %d \n", tmp);
-
-   printf("theimage: %#08x \n", theimage);
    #endif
 #endif
 
@@ -112,7 +107,7 @@ void forward_DCT (short coef_block[DCTSIZE2])
   #ifdef HW_DCT
   // -1) Start DMA
   //if (!(REG32(0x96001810) & 1)) // Start DMA if not running
-    //  REG32(0x96001810) = 0x01;
+  //REG32(0x96001810) = 0x01;
   
   int addr_offset = 0;
   short block[8][8];
@@ -123,12 +118,15 @@ void forward_DCT (short coef_block[DCTSIZE2])
   // 0) Measure how long DMA takes
   // 1) Wait for DMA_DCT_Q to complete a block
   result = 0;
-  while (! (result & 2)) {
+  while (!(result & 2)) {
     result = REG32(0x96001810);
     //fprintf(file, "ctr: %d \n", ctr++);
   }
   //fclose(file);
-  printf("result: %#08x \n", result);
+  //printf("result: %#08x \n", REG32(0x96001814));
+  //printf("src: %#08x \n", theimage);
+  //printf("srcaddr: %#08x \n", REG32(0x96001800));
+  //printf("idle_ctr:                        %d \n", REG32(0x96001818));
   perf_copy += ((result & 0x003FF000) >> 12);
   perf_dctkernel += ((result & 0xFFC00000) >> 22);
   // 2) Read out data, transpose, convert from 16 to 32 bit
@@ -149,7 +147,8 @@ void forward_DCT (short coef_block[DCTSIZE2])
     }
   }
   // 3) Continue with the next block
-  REG32(0x96001810) = 0x10;
+  REG32(0x96001810) = 0x02;
+  //printf("idle_ctr:                        %d \n", REG32(0x96001818));
   #endif
 #else
   #ifdef HW_DCT

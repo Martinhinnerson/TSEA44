@@ -52,7 +52,7 @@ int main(void) {
   /******** Test programs ********/
   REG32(PAR_BASE_ADDR) = 4;
   // dct_sw();
-  dma_dct_hw();
+  //dma_dct_hw();
   //jpegtest();
   
   REG32(PAR_BASE_ADDR) = 5;

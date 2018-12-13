@@ -136,16 +136,15 @@ module jpeg_top(wishbone.slave wb, wishbone.master wbm);
 	      bram_data = {~dma_bram_data[31], dma_bram_data[30:24], ~dma_bram_data[23], dma_bram_data[22:16], ~dma_bram_data[15], dma_bram_data[14:8], ~dma_bram_data[7], dma_bram_data[6:0]};
 	      bram_addr = dma_bram_addr;
 	      bram_we = dma_bram_we;
-	      //bram_ce = ;
+	      bram_ce = dma_bram_we;
 	   end
 	   else begin
 	      bram_data = {~wb.dat_o[31], wb.dat_o[30:24], ~wb.dat_o[23], wb.dat_o[22:16], ~wb.dat_o[15], wb.dat_o[14:8], ~wb.dat_o[7], wb.dat_o[6:0]};
 	      bram_addr = wb.adr[10:2];
 	      bram_we = wb.we;
-	      //bram_ce = ce_in;
+	      bram_ce = ce_in;
 	   end
 	end // always_comb begin
-   assign bram_ce = 1'b1;
    
 	
 	// ============================================================================

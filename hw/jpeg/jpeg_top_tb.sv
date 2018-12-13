@@ -136,7 +136,7 @@ program test_jpeg();
    
    initial begin
   
-    
+    /*
       //Write to inmem
       for (int i=0; i<16; i++) begin
          jpeg_top_tb.wb0.m_write(32'h96000000 + 4*i, d);
@@ -181,9 +181,9 @@ program test_jpeg();
       end
       $fwrite(1,"\n");
    end
+   */
    
    
-   /*
    // Init DMA-engine
    jpeg_top_tb.wb0.m_write(32'h96001800, 32'h0); // DMA_ADDR
    jpeg_top_tb.wb0.m_write(32'h96001804, (`WIDTH*8)); // PITCH
@@ -213,7 +213,7 @@ program test_jpeg();
          jpeg_top_tb.wb0.m_write(32'h96001810, 32'h2); // start next block
       end
    end
-   */
+   
 end
 
 endprogram // tester

@@ -198,12 +198,12 @@ void dma_dct_hw(void) {
 
   volatile unsigned char *dma_address = (volatile unsigned char *) DMA_ADDR; /* Somewhere in the SDRAM */
 
-  printf("DCT\n");
+  //printf("DCT\n");
   // A test image
   j = 0;
   for(blocky = 0; blocky < HEIGHT; blocky++){
     for(blockx = 0; blockx < WIDTH; blockx++){
-      printf("Get block_y: %d, block_x: %d\n", blocky, blockx);
+      // printf("Get block_y: %d, block_x: %d\n", blocky, blockx);
         i = 1;
       for(y = 0; y < 8; y++){
 	for(x = 0; x < 8; x++){
@@ -212,7 +212,7 @@ void dma_dct_hw(void) {
       }
     }
   }
-  printf("Blocks done\n");
+  //printf("Blocks done\n");
 
   REG32(PAR_BASE_ADDR) = 0xa0; /* We are writing status information to the parport so that it is
 				* easy to see what we are doing in the wave window */
@@ -220,17 +220,17 @@ void dma_dct_hw(void) {
   /* Here you must initialize the DMA engine (Hint: DMA_ADDR, PITCH, WIDTH - 1, HEIGHT - 1) */
   printf("Init DMA\n");
   REG32(0x96001800) = 0x01000000; //DMA_ADDR;
-  printf("Start DMA\n");
+  //printf("Start DMA\n");
   REG32(0x96001804) = PITCH;
-  printf("Start DMA\n");
+  //printf("Start DMA\n");
   REG32(0x96001808) = WIDTH - 1;
-  printf("Start DMA\n");
+  //printf("Start DMA\n");
   REG32(0x9600180c) = HEIGHT -1;
-  printf("Start DMA\n");
+  //printf("Start DMA\n");
   REG32(0x96001810) = 0x01;
 
   REG32(PAR_BASE_ADDR) = 0xa1;
-  printf("DCT start\n");
+  //printf("DCT start\n");
 
   int result;
   j = 0;
@@ -244,8 +244,10 @@ void dma_dct_hw(void) {
             
       /* Wait for DCTDMA to fill the DCT accelerator */
       result = 0;
-      while(!(result & 2)) {
-	result = REG32(0x96001810);
+      while(!(result == 2)) {
+	REG32(PAR_BASE_ADDR) = 0xaa;
+	result = (REG32(0x96001810) & 0x00000002);
+	printf("result: %d \n",result);
       }
 
       REG32(PAR_BASE_ADDR) = 0xa6;
@@ -263,7 +265,8 @@ void dma_dct_hw(void) {
       }
 
       /* Here you must tell the DMA accelerator to continue with the next block */
-      REG32(0x96001810) = 0x10;
+      REG32(PAR_BASE_ADDR) = 0xb2;
+      REG32(0x96001810) = 0x02;
     }
   }
 

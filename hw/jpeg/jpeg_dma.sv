@@ -43,11 +43,13 @@
    wire 	       endblock;
    wire 	       endline;
    reg [9:0] 	       ctr;
+   logic [31:0]        image_addr;
+   
    
    
    assign    wbm.dat_o = 32'b0; // We never write from this module
    assign    dma_bram_data = wbm.dat_i; //32'h0; // You need to create this signal...
-   
+   assign wbm.adr = image_addr;
    assign    dma_bram_addr_plus1 = dma_bram_addr + 1'b1;
    
    addrgen agen(
@@ -58,7 +60,7 @@
    .resetaddr_i		(resetaddr),
    .incaddr_i		(incaddr),
    
-   .address_o		(wbm.adr),
+   .address_o		(image_addr),
    
    .endframe_o		(endframe),
    .endblock_o             (endblock),
@@ -99,6 +101,7 @@
    wire dct_ready;
    logic [9:0] dma_ctr;
    logic [9:0] dct_ctr;
+   logic [31:0] idle_ctr;
    
    assign dct_ready = !dct_busy && fetch_ready;
    
@@ -110,6 +113,8 @@
          3'b010: wb_dat_o = dma_endblock_x;
          3'b011: wb_dat_o = dma_endblock_y;
          3'b100: wb_dat_o = {dma_ctr, dct_ctr, ctr, dct_ready, dma_is_running};
+ 	 3'b101: wb_dat_o = image_addr;
+	 3'b110: wb_dat_o = idle_ctr;
       endcase // case(wb_adr_i[4:2])
    end
    // FIXME - what is ctr? Should the students create this?
@@ -234,11 +239,20 @@
          endcase // case(state)
       end
    end //
+  
    
    // The flip flops for the FSM
    always_ff @(posedge clk_i) begin
-      state         <= next_state;
-      dma_bram_addr <= next_dma_bram_addr;
+      if (rst_i) begin
+	 state <= DMA_IDLE;
+	 idle_ctr <= 32'h0;
+	 dma_bram_addr <= 9'h0;
+      end else begin
+	 state <= next_state;
+	 if (next_state == DMA_IDLE && state != DMA_IDLE)
+	   idle_ctr <= idle_ctr + 1'b1;
+	 dma_bram_addr <= {dma_bram_addr[8:4],next_dma_bram_addr};
+      end
    end
    
    
