@@ -48,7 +48,7 @@
    assign    wbm.dat_o = 32'b0; // We never write from this module
    assign    dma_bram_data = wbm.dat_i; //32'h0; // You need to create this signal...
    
-   assign    dma_bram_addr_plus1 = dma_bram_addr + 1;
+   assign    dma_bram_addr_plus1 = dma_bram_addr + 1'b1;
    
    addrgen agen(
    .clk_i			(clk_i),
@@ -97,6 +97,8 @@
    
    reg fetch_ready;
    wire dct_ready;
+   logic [9:0] dma_ctr;
+   logic [9:0] dct_ctr;
    
    assign dct_ready = !dct_busy && fetch_ready;
    
@@ -107,10 +109,16 @@
          3'b001: wb_dat_o = dma_pitch;
          3'b010: wb_dat_o = dma_endblock_x;
          3'b011: wb_dat_o = dma_endblock_y;
-         3'b100: wb_dat_o = {20'b0, ctr, dct_ready, dma_is_running};
+         3'b100: wb_dat_o = {dma_ctr, dct_ctr, ctr, dct_ready, dma_is_running};
       endcase // case(wb_adr_i[4:2])
    end
    // FIXME - what is ctr? Should the students create this?
+
+   localparam DMA_IDLE             = 4'd0;
+   localparam DMA_GETBLOCK         = 4'd4;
+   localparam DMA_RELEASEBUS       = 4'd5;
+   localparam DMA_WAITREADY        = 4'd6;
+   localparam DMA_WAITREADY_LAST   = 4'd7;
    
    always_ff @(posedge clk_i) begin
       if(startfsm | startnextblock)
@@ -119,12 +127,19 @@
       ctr <= ctr + 1;
    end
    
+   always_ff @(posedge clk_i) begin
+      if(startfsm | startnextblock)
+      dma_ctr <= 10'h0;
+      else if (state == DMA_GETBLOCK)
+      dma_ctr <= dma_ctr + 1;
+   end
    
-   localparam DMA_IDLE             = 4'd0;
-   localparam DMA_GETBLOCK         = 4'd4;
-   localparam DMA_RELEASEBUS       = 4'd5;
-   localparam DMA_WAITREADY        = 4'd6;
-   localparam DMA_WAITREADY_LAST   = 4'd7;
+   always_ff @(posedge clk_i) begin
+      if(startfsm | startnextblock)
+      dct_ctr <= 10'h0;
+      else if (dct_busy)
+      dct_ctr <= dct_ctr + 1;
+   end
    
    assign dma_is_running = (state != DMA_IDLE);
    
@@ -165,27 +180,34 @@
             
             DMA_GETBLOCK: begin
                // Hint: look at endframe, endblock, endline and wbm_ack_i...
-               if (endframe) begin
-                  next_state = DMA_WAITREADY_LAST;
-                  start_dct = 1;
-               end
-               else if (endblock) begin
-                  next_state = DMA_WAITREADY;
-                  start_dct = 1;
-               end
-               else if (endline) begin
-                  next_state = DMA_RELEASEBUS;
-               end
-               else begin
-                  wbm.stb = 1;
-                  wbm.cyc = 1;
+               wbm.stb = 1;
+               wbm.cyc = 1;
 
-                  if (wbm.ack) begin
-                     incaddr = 1;
-                     next_dma_bram_addr = dma_bram_addr_plus1;
-                     dma_bram_we = 1;
-                  end
-               end
+               if (wbm.ack) begin
+		  if (endframe) begin
+		     next_state = DMA_WAITREADY_LAST;
+		     start_dct = 1;
+		     dma_bram_we = 1;
+		  end
+		  else if (endblock) begin
+		     next_state = DMA_WAITREADY;
+		     start_dct = 1;
+		     next_dma_bram_addr = 4'h0;
+		     incaddr = 1;
+		     dma_bram_we = 1;
+		  end
+		  else if (endline) begin
+		     next_state = DMA_RELEASEBUS;
+		     incaddr = 1;
+		     next_dma_bram_addr = dma_bram_addr_plus1;
+		     dma_bram_we = 1;
+		  end
+		  else begin
+		     incaddr = 1;
+		     next_dma_bram_addr = dma_bram_addr_plus1;
+		     dma_bram_we = 1;
+		  end
+	       end
             end
             
             DMA_RELEASEBUS: begin
@@ -195,13 +217,18 @@
             
             DMA_WAITREADY: begin
                // Hint: Need to tell the status register that we are waiting here...
-               if (startnextblock && dct_ready) begin
+	       fetch_ready = 1'b1;
+	       if (startnextblock) begin
                   next_state = DMA_GETBLOCK;
                end
             end
             
             DMA_WAITREADY_LAST: begin
                // Hint: Need to tell the status register that we are waiting here...
+	       fetch_ready = 1'b1;
+	       if (startnextblock) begin
+                  next_state = DMA_IDLE;
+               end
             end
             
          endcase // case(state)

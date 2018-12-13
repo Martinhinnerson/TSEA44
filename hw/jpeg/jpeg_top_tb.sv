@@ -73,16 +73,38 @@ module mem(wishbone.slave wbm);
    logic [7:0] rom[0:2047];
    logic [1:0]	state;
    logic [8:0] adr;
-   integer     blockx, blocky, x, y, i;
+   integer     blockx, blocky, x, y, i, chess;
    
    initial begin
       // A test image, same as dma_dct_hw.c
+      i = 1;
       for (blocky=0; blocky<`HEIGHT; blocky++)
-      for (blockx=0; blockx<`WIDTH; blockx++)
-      for (i=1, y=0; y<8; y++)
-      for (x=0; x<8; x++)
-      rom[blockx*8+x+(blocky*8+y)*`PITCH] = i++;
-   end
+	for (blockx=0; blockx<`WIDTH; blockx++) begin
+	   if (blocky == 0 && blockx == 0)
+	     for (y=0; y<8; y++)
+	       for (x=0; x<8; x++)
+		 rom[blockx*8+x+(blocky*8+y)*`PITCH] = i++;
+	   if (blocky == 0 && blockx == 1) begin
+	      chess = 0;
+	      for (y=0; y<8; y++) begin
+		 chess = 1;
+		 for (x=0; x<8; x++) begin
+		    rom[blockx*8+x+(blocky*8+y)*`PITCH] = chess;
+		    chess = !chess;
+		 end
+	      end
+	   end
+	   if (blocky == 1 && blockx == 0) begin
+	      chess = 1;
+	      for (y=0; y<8; y++) begin
+		 for (x=0; x<8; x++) begin
+		    rom[blockx*8+x+(blocky*8+y)*`PITCH] = chess;
+		    chess = !chess;
+		 end
+	      end
+	   end
+	end // for (blockx=0; blockx<`WIDTH; blockx++)
+   end // initial begin
    
    assign wbm.err = 1'b0;
    assign wbm.rty = 1'b0;
@@ -113,22 +135,36 @@ program test_jpeg();
    
    
    initial begin
-      
+  
+    
       //Write to inmem
       for (int i=0; i<16; i++) begin
          jpeg_top_tb.wb0.m_write(32'h96000000 + 4*i, d);
          d += 32'h04040404;
       end
-      /* for (int i=0; i<4; i++) begin
-      jpeg_top_tb.wb0.m_write(32'h96000000 + 4*2*i, d);
-      jpeg_top_tb.wb0.m_write(32'h96000000 + 4*2*i+4, d2);
-   end
-   for (int i = 4; i<8; i++) begin
-      jpeg_top_tb.wb0.m_write(32'h96000000 + 4*2*i, d2);
-      jpeg_top_tb.wb0.m_write(32'h96000000 + 4*2*i+4, d);
-      //d = ~d;   //32'h04040404;
-   end */
+    
+   //send start
+   jpeg_top_tb.wb0.m_write(32'h96001000, 32'h01000000);
    
+   //wait for dct accelerator to finish
+   while (result != 32'h80000000)
+	jpeg_top_tb.wb0.m_read(32'h96001000,result);
+   
+   //read from utmem
+   for (int j=0; j<8; j++) begin
+      for (int i=0; i<4; i++) begin
+         jpeg_top_tb.wb0.m_read(32'h96000800 + 4*i + j*16,result);
+         $fwrite(1,"%5d ", result >>> 16);
+         $fwrite(1,"%5d ", (result << 16) >>>16);
+      end
+      $fwrite(1,"\n");
+   end
+
+      for (int i=0; i<16; i++) begin
+         jpeg_top_tb.wb0.m_write(32'h96000000 + 4*i, d2);
+         d2 = ~d2;  //32'h04040404;
+      end
+    
    //send start
    jpeg_top_tb.wb0.m_write(32'h96001000, 32'h01000000);
    
@@ -147,8 +183,7 @@ program test_jpeg();
    end
    
    
-   
-   /* -----\/----- EXCLUDED -----\/-----
+   /*
    // Init DMA-engine
    jpeg_top_tb.wb0.m_write(32'h96001800, 32'h0); // DMA_ADDR
    jpeg_top_tb.wb0.m_write(32'h96001804, (`WIDTH*8)); // PITCH
@@ -178,8 +213,7 @@ program test_jpeg();
          jpeg_top_tb.wb0.m_write(32'h96001810, 32'h2); // start next block
       end
    end
-   -----/\----- EXCLUDED -----/\----- */
-   
+   */
 end
 
 endprogram // tester

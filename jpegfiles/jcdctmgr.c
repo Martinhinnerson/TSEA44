@@ -60,7 +60,31 @@ void init_image(unsigned char *t,unsigned int image_width, unsigned int image_he
    width = image_width;
    height = image_height;
 
-   //#endif
+#ifdef HW_DMA
+   #ifdef HW_DCT
+   REG32(0x96001800) = theimage;
+   REG32(0x96001804) = width;
+   REG32(0x96001808) = width/8 - 1;
+   REG32(0x9600180c) = height/8 - 1;
+
+   int tmp;
+   tmp = REG32(0x96001800);
+   printf("srcaddr: %#08x \n", tmp);
+   tmp = REG32(0x96001804);
+   printf("pitch: %d \n", tmp);
+   tmp = REG32(0x96001808);
+   printf("endblock_x: %d \n", tmp);
+   tmp = REG32(0x9600180c);
+   printf("endblock_y: %d \n", tmp);
+
+   REG32(0x96001810) = 0x01;
+
+   tmp = REG32(0x96001810);
+   printf("tmp: %d \n", tmp);
+
+   printf("theimage: %#08x \n", theimage);
+   #endif
+#endif
 
 }
 
@@ -86,9 +110,46 @@ void forward_DCT (short coef_block[DCTSIZE2])
   
 #ifdef HW_DMA
   #ifdef HW_DCT
+  // -1) Start DMA
+  //if (!(REG32(0x96001810) & 1)) // Start DMA if not running
+    //  REG32(0x96001810) = 0x01;
+  
+  int addr_offset = 0;
+  short block[8][8];
+  int tmp;
+  int result;
+  int ctr = 0;
+  //FILE* file = fopen("htdocs/output.txt", "a"); 
+  // 0) Measure how long DMA takes
   // 1) Wait for DMA_DCT_Q to complete a block
+  result = 0;
+  while (! (result & 2)) {
+    result = REG32(0x96001810);
+    //fprintf(file, "ctr: %d \n", ctr++);
+  }
+  //fclose(file);
+  printf("result: %#08x \n", result);
+  perf_copy += ((result & 0x003FF000) >> 12);
+  perf_dctkernel += ((result & 0xFFC00000) >> 22);
   // 2) Read out data, transpose, convert from 16 to 32 bit
+  addr_offset = 0;
+  for (i=0; i < 8; i++) {
+    for (j=0; j < 4; j++) {
+      result = REG32(0x96000800 + addr_offset);
+      addr_offset += 4;
+      tmp = result;
+      block[2*j][i] = (short) (result >> 16);
+      block[2*j+1][i] = (short) (tmp & 0x0000ffff);
+    }
+  }
+
+  for (i = 0; i < 8; i++) {
+    for (j = 0; j < 8; j++) {
+      *pc++ = block[i][j];
+    }
+  }
   // 3) Continue with the next block
+  REG32(0x96001810) = 0x10;
   #endif
 #else
   #ifdef HW_DCT

@@ -102,7 +102,7 @@ module jpeg_top(wishbone.slave wb, wishbone.master wbm);
 	assign 	 ce_in = wb.stb && (wb.adr[12:11]==2'b00); // Input mem
 	assign 	 ce_ut = wb.stb && (wb.adr[12:11]==2'b01); // Output mem
 	assign 	 csren = wb.stb && (wb.adr[12:11]==2'b10); // Control reg
-	assign        dmaen = wb.stb && (wb.adr[12:11]==2'b11); // DMA control
+        assign   dmaen = wb.stb && (wb.adr[12:11]==2'b11); // DMA control
 	
 	
 	// ack FSM
@@ -131,10 +131,22 @@ module jpeg_top(wishbone.slave wb, wishbone.master wbm);
 	// ============================================================================
 	// Block ram signal assignment
 	// ============================================================================
-	assign bram_data = {~wb.dat_o[31], wb.dat_o[30:24], ~wb.dat_o[23], wb.dat_o[22:16], ~wb.dat_o[15], wb.dat_o[14:8], ~wb.dat_o[7], wb.dat_o[6:0]};
-	assign bram_addr = wb.adr[10:2];
-	assign bram_we = wb.we;
-	assign bram_ce = ce_in;
+        always_comb begin
+	   if (dma_bram_we) begin
+	      bram_data = {~dma_bram_data[31], dma_bram_data[30:24], ~dma_bram_data[23], dma_bram_data[22:16], ~dma_bram_data[15], dma_bram_data[14:8], ~dma_bram_data[7], dma_bram_data[6:0]};
+	      bram_addr = dma_bram_addr;
+	      bram_we = dma_bram_we;
+	      //bram_ce = ;
+	   end
+	   else begin
+	      bram_data = {~wb.dat_o[31], wb.dat_o[30:24], ~wb.dat_o[23], wb.dat_o[22:16], ~wb.dat_o[15], wb.dat_o[14:8], ~wb.dat_o[7], wb.dat_o[6:0]};
+	      bram_addr = wb.adr[10:2];
+	      bram_we = wb.we;
+	      //bram_ce = ce_in;
+	   end
+	end // always_comb begin
+   assign bram_ce = 1'b1;
+   
 	
 	// ============================================================================
 	// OUTMEM memory counter
@@ -217,6 +229,9 @@ module jpeg_top(wishbone.slave wb, wishbone.master wbm);
 			2'b01: begin
 				wb.dat_i = dout_res;
 			end
+		        2'b11: begin
+			        wb.dat_i = wb_dma_dat;
+		        end
 			default: begin
 				wb.dat_i = {csr, 24'h0};
 			end
@@ -317,6 +332,7 @@ module jpeg_top(wishbone.slave wb, wishbone.master wbm);
 	.stb_i(wb.stb),
 	.we_i(wb.we),
 	.dat_o(wb.dat_o),
+	.dma_start_dct(dma_start_dct),
 	.adr_i(wb.adr),
 	.csr_o(csr),
 	.t_rd(t_rd),
@@ -328,7 +344,8 @@ module jpeg_top(wishbone.slave wb, wishbone.master wbm);
 	.dct_enable(dct_enable),
 	.dct_mux_sel(dct_mux_sel),
 	.q2_mux_sel(q2_mux_sel),
-	.rec_o(rec));
+	.rec_o(rec),
+	.dct_busy(dct_busy));
 	
 	
 	
@@ -371,11 +388,13 @@ endmodule // wb_ctrl
 module dct_ctrl_module(
 	input clk_i, rst_i, stb_i, we_i,
 	input [31:0] dat_o, adr_i,
+	input dma_start_dct,
 	output logic [7:0] csr_o,
 	output logic t_rd, t_wr, count_in_enable, count_out_enable,
 	output logic [1:0] q2_mux_sel,
 	output logic dct_mux_sel, dct_enable, count_in_rst, count_out_rst,
-	output logic [31:0] rec_o);
+	output logic [31:0] rec_o,
+	output logic dct_busy);
 	
 	typedef enum        {IDLE, INIT, FIRST1, FIRST2, FIRST3, FIRST4, FIRST5, FIRST_STAGE_DONE,
 	SECOND1, SECOND2, SECOND3, SECOND4, SECOND5, SECOND6, DCT_DONE} state_t;
@@ -397,6 +416,8 @@ module dct_ctrl_module(
 	
 	assign csr_o = csr;
 	assign q2_mux_sel = q2_loop_counter;
+
+        assign dct_busy = (state != IDLE);
 	
 
 	logic [1:0] csr_mux_sel;
@@ -411,7 +432,7 @@ module dct_ctrl_module(
 		end else begin
 			case (state)
 				IDLE: begin
-					if (csr[0]) begin
+					if (csr[0] || dma_start_dct) begin
 						state <= INIT;
 						dct_state_counter <= 2'd3;
 					end
@@ -613,7 +634,10 @@ module dct_ctrl_module(
 					csr <= {1'b1, csr[6:0]};
 				end
 				default: begin
-					if (we_i && stb_i && adr_i[12:11] == 2'b10) begin
+				        if (dma_start_dct) begin
+					   csr <= {csr[7:1], 1'b1};
+					end
+					else if (we_i && stb_i && adr_i[12:11] == 2'b10) begin
 						csr <= dat_o[31:24];
 					end 
 				end
