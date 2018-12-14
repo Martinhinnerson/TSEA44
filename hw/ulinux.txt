@@ -3,4 +3,4 @@ tftp 192.168.0.102
 get jpegtest
 quit
 chmod 755 jpegtest
-jpegtest htdocs/result12.jpg
+jpegtest htdocs/result_dma.jpg

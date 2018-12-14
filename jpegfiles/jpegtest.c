@@ -44,6 +44,7 @@ int main(int argc,char **argv)
 {
   unsigned int startcycle;
   FILE *fp;
+  int m0_stb, m0_ack, m1_stb, m1_ack, m6_stb, m6_ack;
   
   startcycle = gettimer();
 
@@ -57,6 +58,12 @@ int main(int argc,char **argv)
     fprintf(stderr,"Could not open output file\n");
     exit(1);
   }
+  REG32(0x99000000) = 0;
+  REG32(0x99000004) = 0;
+  REG32(0x99000008) = 0;
+  REG32(0x9900000c) = 0;
+  REG32(0x99000010) = 0;
+  REG32(0x99000014) = 0;
 
   drawimage(); // Create the image we are going to encode 
 
@@ -71,6 +78,13 @@ int main(int argc,char **argv)
 #endif
   
   encode_image();
+
+  m0_stb = REG32(0x99000000);
+  m0_ack = REG32(0x99000004);
+  m1_stb = REG32(0x99000008);
+  m1_ack = REG32(0x9900000c);
+  m6_stb = REG32(0x99000010);
+  m6_ack = REG32(0x99000014);
   
   perf_mainprogram += gettimer() - startcycle;
 
@@ -78,6 +92,12 @@ int main(int argc,char **argv)
   fclose(fp);
 
   print_performance(); // Print performance data 
-
+  printf("M0_stb: %d \n", m0_stb);
+  printf("M0_ack: %d \n", m0_ack);
+  printf("M1_stb: %d \n", m1_stb);
+  printf("M1_ack: %d \n", m1_ack);
+  printf("M6_stb: %d \n", m6_stb);
+  printf("M6_ack: %d \n", m6_ack);
+  
   return 0;
 }

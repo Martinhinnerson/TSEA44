@@ -67,7 +67,7 @@ void init_image(unsigned char *t,unsigned int image_width, unsigned int image_he
    REG32(0x96001808) = width/8 - 1;
    REG32(0x9600180c) = height/8 - 1;
 
-   int tmp;
+   /*int tmp;
    tmp = REG32(0x96001800);
    printf("srcaddr: %#08x \n", tmp);
    tmp = REG32(0x96001804);
@@ -75,8 +75,9 @@ void init_image(unsigned char *t,unsigned int image_width, unsigned int image_he
    tmp = REG32(0x96001808);
    printf("endblock_x: %d \n", tmp);
    tmp = REG32(0x9600180c);
-   printf("endblock_y: %d \n", tmp);
+   printf("endblock_y: %d \n", tmp);*/
 
+   // Start DMA
    REG32(0x96001810) = 0x01;
    #endif
 #endif

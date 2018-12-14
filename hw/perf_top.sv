@@ -7,100 +7,138 @@ module perf_top
    (
    wishbone.slave wb,
    // Master signals
-   wishbone.monitor m0, m1
+   wishbone.monitor m0, m1, m6
    );
    
    assign 	wb.rty = 1'b0;	// not used in this course
    assign 	wb.err = 1'b0;  // not used in this course
    assign 	wb.ack = wb.stb && wb.cyc; // change if needed
    
-   logic [31:0] ctr0,ctr1,ctr2,ctr3;
-   logic 	rst0,rst1,rst2,rst3;
+   logic [31:0] m0_stb_cyc,m0_ack,m1_stb_cyc,m1_ack,m6_stb_cyc,m6_ack;
+   logic 	rst_m0_stb_cyc,rst_m0_ack,rst_m1_stb_cyc,rst_m1_ack,rst_m6_stb_cyc,rst_m6_ack;
    logic [31:0] out;
    
-   //Reset rignals for the counter 0-3
-   assign rst0 = (wb.stb && wb.we && wb.adr == 32'h99000000);
-   assign rst1 = (wb.stb && wb.we && wb.adr == 32'h99000004);
-   assign rst2 = (wb.stb && wb.we && wb.adr == 32'h99000008);
-   assign rst3 = (wb.stb && wb.we && wb.adr == 32'h9900000c);
+   //Reset signals for the counters
+   assign rst_m0_stb_cyc = (wb.stb && wb.we && wb.adr == 32'h99000000);
+   assign rst_m0_ack = (wb.stb && wb.we && wb.adr == 32'h99000004);
+   assign rst_m1_stb_cyc = (wb.stb && wb.we && wb.adr == 32'h99000008);
+   assign rst_m1_ack = (wb.stb && wb.we && wb.adr == 32'h9900000c);
+   assign rst_m6_stb_cyc = (wb.stb && wb.we && wb.adr == 32'h99000010);
+   assign rst_m6_ack = (wb.stb && wb.we && wb.adr == 32'h99000014);
    
-   //Counter 0
+   //M0 stb & cyc counter
    always_ff @(posedge wb.clk) begin
       if (wb.rst) begin
-         ctr0 <= 32'h0;
+         m0_stb_cyc <= 32'h0;
       end
       else begin 
-         if (rst0) begin
-            ctr0 <= 32'h0;
+         if (rst_m0_stb_cyc) begin
+            m0_stb_cyc <= 32'h0;
          end
          else if (m0.stb && m0.cyc) begin
-            ctr0 <= ctr0 + 1'b1;
+            m0_stb_cyc <= m0_stb_cyc + 1'b1;
          end
       end
    end
    
-   //Counter 1
+   //M0 ack counter
    always_ff @(posedge wb.clk) begin
       if (wb.rst) begin
-         ctr1 <= 32'h0;
+         m0_ack <= 32'h0;
       end
       else begin 
-         if (rst1) begin
-            ctr1 <= 32'h0;
+         if (rst_m0_ack) begin
+            m0_ack <= 32'h0;
          end
          else if (m0.ack) begin
-            ctr1 <= ctr1 + 1'b1;
+            m0_ack <= m0_ack + 1'b1;
          end
       end 
    end
    
-   //Counter 2
+   //M1 stb & cyc counter
    always_ff @(posedge wb.clk) begin
       if (wb.rst) begin
-         ctr2 <= 32'h0;
+         m1_stb_cyc <= 32'h0;
       end
       else begin
-         if (rst2) begin
-            ctr2 <= 32'h0;
+         if (rst_m1_stb_cyc) begin
+            m1_stb_cyc <= 32'h0;
          end
          else if (m1.stb && m1.cyc) begin
-            ctr2 <= ctr2 + 1'b1;
+            m1_stb_cyc <= m1_stb_cyc + 1'b1;
          end
       end
    end
    
-   //Counter 3
+   //M1 ack counter
    always_ff @(posedge wb.clk) begin
       if (wb.rst) begin
-         ctr3 <= 32'h0;
+         m1_ack <= 32'h0;
       end
       else begin 
-         if (rst3) begin
-            ctr3 <= 32'h0;
+         if (rst_m1_ack) begin
+            m1_ack <= 32'h0;
          end
          else if (m1.ack) begin
-            ctr3 <= ctr3 + 1'b1;
+            m1_ack <= m1_ack + 1'b1;
          end
       end
-   end 
+   end
+
+   //M6 stb & cyc counter
+   always_ff @(posedge wb.clk) begin
+      if (wb.rst) begin
+         m6_stb_cyc <= 32'h0;
+      end
+      else begin 
+         if (rst_m6_stb_cyc) begin
+            m6_stb_cyc <= 32'h0;
+         end
+         else if (m6.stb && m6.cyc) begin
+            m6_stb_cyc <= m6_stb_cyc + 1'b1;
+         end
+      end
+   end
+   
+   //M6 ack counter
+   always_ff @(posedge wb.clk) begin
+      if (wb.rst) begin
+         m6_ack <= 32'h0;
+      end
+      else begin 
+         if (rst_m6_ack) begin
+            m6_ack <= 32'h0;
+         end
+         else if (m6.ack) begin
+            m6_ack <= m6_ack + 1'b1;
+         end
+      end 
+   end
    
    
    always_comb begin
       case (wb.adr)
          32'h99000000: begin
-            out <= ctr0;
+            out <= m0_stb_cyc;
          end
          32'h99000004: begin
-            out <= ctr1;
+            out <= m0_ack;
          end
          32'h99000008: begin
-            out <= ctr2;
+            out <= m1_stb_cyc;
          end
          32'h9900000c: begin
-            out <= ctr3;
+            out <= m1_ack;
+         end
+	 32'h99000010: begin
+            out <= m6_stb_cyc;
+         end
+         32'h99000014: begin
+            out <= m6_ack;
          end
          default: begin
-            out <= ctr0;
+            out <= m0_stb_cyc;
          end
       endcase // case (wb.adr)
    end
