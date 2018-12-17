@@ -418,7 +418,7 @@ module or1200_sprs(
 `ifdef OR1200_SBIT_IMPL
 	     `OR1200_SPR_GROUP_VLX:
 	       //Here you must add code to make spr work for the VLX unit.
-	       to_wbmux = 0;
+	       to_wbmux = spr_dat_vlx;
 `endif
 	     default:
 	       to_wbmux = 32'b0;

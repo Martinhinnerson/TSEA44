@@ -597,6 +597,8 @@ module or1200_ctrl
    `ifdef OR1200_SBIT_IMPL
 	   // l.sbit (l.sd)
 	   //Here you must add code for the sel_imm signal.
+	   `OR1200_OR32_SBIT:
+	     sel_imm <= 1'b0;
    `endif
 	   // ALU instructions except the one with immediate
 	   `OR1200_OR32_ALU:
@@ -656,7 +658,8 @@ module or1200_ctrl
 	     `OR1200_OR32_LHZ,
 	     `OR1200_OR32_LHS,
    `ifdef OR1200_SBIT_IMPL
-	       //Here you must add code to avoid an illegal instruction exception	       
+	       //Here you must add code to avoid an illegal instruction exception
+	       `OR1200_OR32_SBIT, 	       
    `endif
 	       `OR1200_OR32_ADDI,
 	     `OR1200_OR32_ADDIC,
@@ -1028,11 +1031,13 @@ module or1200_ctrl
 	     lsu_op <=  `OR1200_LSUOP_SB;
 	   
 	   // l.sh
-	   `OR1200_OR32_SH:
+	   `OR1200_O32_SH:
 	     lsu_op <=  `OR1200_LSUOP_SH;
 
    `ifdef OR1200_SBIT_IMPL
-	   //Here you must att code to get the right lsu_op.	   
+	   //Here you must att code to get the right lsu_op.
+	   `OR1200_OR32_SBIT:
+ 	     lsu_op <= `OR1200_LSUOP_SBIT;
    `endif
 	   // Non load/store instructions
 	   default: begin

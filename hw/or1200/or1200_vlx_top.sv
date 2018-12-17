@@ -79,7 +79,9 @@ module or1200_vlx_top(/*AUTOARG*/
       .spr_addr(spr_addr[0]),
       .spr_dat_o(spr_dp_dat_o),
       .spr_dat_i(spr_dat_i),
-      .write_dp_spr_i(write_dp_spr)
+      .write_dp_spr_i(write_dp_spr),
+      .set_bit_op_i(set_bit_op_i),
+      .store_reg_o(store_reg)
       );
 
 
