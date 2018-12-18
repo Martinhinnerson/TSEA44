@@ -2,15 +2,16 @@
 
 module or1200_vlx_dp(/*AUTOARG*/
    // Outputs
-   spr_dat_o, bit_reg_o, 
+   spr_dat_o, bit_reg_o, store_byte_o,
    // Inputs
    clk_i, rst_i, bit_vector_i, num_bits_to_write_i, spr_addr, 
-   write_dp_spr_i, spr_dat_i
+   write_dp_spr_i, spr_dat_i, ack_i
    );
 
    input clk_i;
    input rst_i;
-   
+   input ack_i;
+      
    input [31:0] bit_vector_i;
    input [4:0] 	num_bits_to_write_i;
    input 	spr_addr;
@@ -20,42 +21,32 @@ module or1200_vlx_dp(/*AUTOARG*/
 
    output [31:0] spr_dat_o;
    output [31:0] bit_reg_o;
-   output 	 store_byte;
+   output 	 store_byte_o;
    
 
    reg [31:0] 	bit_reg;
    reg [5:0] 	bit_reg_wr_pos;
 
-   typedef enum {IDLE, NEW_INSTR, STORING_MORE_BYTES} state_t;
+   typedef enum {IDLE, STORE_FIRST_BYTE, STORE_SECOND_BYTE, STORE_THIRD_BYTE, STORE_FOURTH_BYTE} state_t;
    state_t state;
 
    logic [31:0] data_to_store;
    logic [31:0] last_data_to_store;
    logic [31:0] combined_code;
    logic [5:0] 	combined_wr_pos;
+   logic 	store_byte;
+   
 
 
    logic [31:0] code;
    logic [4:0] 	size;
    assign code = bit_vector_i;
    assign size = num_bits_to_write_i;
-   
 
-   // combined_code, combined_wr_pos
-   always_comb begin
-      combined_code = bit_reg;
-      combined_wr_pos = bit_reg_wr_pos;
+   
+   assign combined_code = bit_reg | (code << (bit_reg_wr_pos - size));
+   assign combined_wr_pos = bit_reg_wr_pos - size;
       
-      case (state)
-	IDLE: begin
-	   if (set_bit_op_i) begin
-	      combined_code = bit_reg | (code << (bit_reg_wr_pos - size));
-	      combined_wr_pos = bit_reg_wr_pos - size;
-	   end
-	end
-	// Keep default values in the other cases
-      endcase
-   end
 
 
    logic insert_00;
@@ -64,7 +55,13 @@ module or1200_vlx_dp(/*AUTOARG*/
    // store_byte
    // We want to store data if we have a complete byte to store,
    // OR if we need to insert 0x00
-   assign store_byte = (combined_wr_pos < 16) | insert_00;
+   always_comb begin
+      if (state == IDLE & set_bit_op_i) begin
+	 store_byte = (combined_wr_pos < 16) | insert_00;
+      end else begin
+	 store_byte = (bit_reg_wr_pos < 16) | insert_00;
+      end
+   end
    
 
    // state transitions
@@ -75,20 +72,36 @@ module or1200_vlx_dp(/*AUTOARG*/
       else begin
 	 case (state)
 	   IDLE: begin
-	      if (set_bit_op_i) begin
-		 state <= NEW_INSTR;
+	      if (set_bit_op_i & store_byte) begin
+		 state <= STORE_FIRST_BYTE;
 	      end
 	   end
-	   NEW_INSTR: begin
-	      if (store_byte) begin
-		 state <= STORING_MORE_BYTES;
+	   STORE_FIRST_BYTE: begin
+	      if (store_byte & ack_i) begin
+		 state <= STORE_SECOND_BYTE;
 	      end
-	      else begin
+	      else if (~store_byte & ack_i) begin
 		 state <= IDLE;
 	      end
 	   end
-	   STORING_MORE_BYTES: begin
-	      if (~store_byte) begin
+	   STORE_SECOND_BYTE: begin
+	      if (store_byte & ack_i) begin
+		 state <= STORE_THIRD_BYTE;
+	      end
+	      else if (~store_byte & ack_i) begin
+		 state <= IDLE;
+	      end
+	   end
+	   STORE_THIRD_BYTE: begin
+	      if (store_byte & ack_i) begin
+		 state <= STORE_FOURTH_BYTE;
+	      end
+	      else if (~store_byte & ack_i) begin
+		 state <= IDLE;
+	      end
+	   end
+	   STORE_FOURTH_BYTE: begin
+	      if (ack_i) begin
 		 state <= IDLE;
 	      end
 	   end
@@ -112,7 +125,15 @@ module or1200_vlx_dp(/*AUTOARG*/
    
    // data_to_store
    // Set output data
-   assign data_to_store = (state != IDLE) ? (insert_00 ? 32'h0 : {24'b0, combined_code[23:16]}) : 32'h0;
+
+   always_comb begin
+      if (state == IDLE & set_bit_op_i & store_byte) begin
+	 data_to_store = {24'b0, combined_code[23:16]};
+      end else if (ack_i & set_bit_op_i & store_byte) begin
+	 data_to_store = {24'b0, bit_reg[23:16]};
+      end 
+   end
+   
    assign bit_reg_o = data_to_store;
    
 
@@ -132,17 +153,22 @@ module or1200_vlx_dp(/*AUTOARG*/
 	    end
 	 end
 	 else begin
-	    if (store_byte & ~insert_00) begin
-	       // store, so shift
-	       bit_reg <= {8'h0, combined_code[15:0], 8'h0};
-	       bit_reg_wr_pos <= combined_wr_pos + 8;
-	    end
-	    else if ((store_byte & insert_00) | (~store_byte & ~insert_00)) begin
-	       // store 00 before storing next byte, or nothing to store, so no shift
+	    if (ack_i & set_bit_op_i & store_byte) begin
+	       if (insert_00) begin
+		  bit_reg <= bit_reg;
+		  bit_reg_wr_pos <= bit_reg_wr_pos;
+	       end else begin
+		  bit_reg <= {8'b0, bit_reg[15:0],8'b0};
+		  bit_reg_wr_pos <= bit_reg_wr_pos + 8;
+	       end
+	    end else if (state == IDLE & store_byte & set_bit_op_i) begin
+	       bit_reg <= {8'b0,combined_code[15:0],8'b0};
+	       bit_reg_wr_pos <= combined_size + 8;
+	    end else if (state == IDLE & ~store_byte & set_bit_op_i) begin
 	       bit_reg <= combined_code;
-	       bit_reg_wr_pos <= combined_wr_pos;
+	       bit_reg_wr_pos <= combined_size;
 	    end
-	 end
+	 end // else: !if(write_dp_spr_i)
       end
    end // always_ff @ (posedge clk_i or posedge rst_i)
 
