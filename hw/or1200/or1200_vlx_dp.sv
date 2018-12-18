@@ -125,7 +125,6 @@ module or1200_vlx_dp(/*AUTOARG*/
    
    // data_to_store
    // Set output data
-
    always_comb begin
       if (state == IDLE & set_bit_op_i & store_byte) begin
 	 data_to_store = {24'b0, combined_code[23:16]};
@@ -172,7 +171,27 @@ module or1200_vlx_dp(/*AUTOARG*/
       end
    end // always_ff @ (posedge clk_i or posedge rst_i)
 
-   
+
+
+   // Set the store_byte_o
+   // Set to 1 when we are outputting new data that we need to store
+   always_comb begin
+      if ((state == IDLE) && store_byte && set_bit_op_i) begin
+         // Going from IDLE to STORE_FIRST_BYTE
+         // We are outputting new data to store
+         store_byte_o = 1'b1;
+      end
+      else if ((state != IDLE) && store_byte && ack_i) begin
+         // Going from state FIRST, SECOND or THIRD to SECOND, THIRD or FOURTH
+         // We are outputting new data to store
+         store_byte_o = 1'b1;
+      end
+      else begin
+         // Stationary in a state, or going to idle
+         // We are NOT outputting new data to store
+         store_byte_o = 1'b0;
+      end
+   end
    
 
    assign spr_dat_o = spr_addr ? bit_reg : {26'b0,bit_reg_wr_pos};

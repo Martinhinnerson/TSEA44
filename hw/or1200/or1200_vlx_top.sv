@@ -27,13 +27,16 @@ module or1200_vlx_top(/*AUTOARG*/
    output 	 store_byte_o; //high when storing a byte
 
    wire 	 set_init_addr;   
-   wire 	 store_reg;
    wire [31:0] 	 bit_reg;
-   wire 	 last_byte;
-   wire 	 ack_vlx_write_done;
+   wire 	 last_byte;          // Not used right now, use or remove???
+   wire 	 ack_vlx_write_done; // Not used right now, use or remove???
    wire [31:0] 	 su_data_in;
    wire [31:0] 	 spr_dp_dat_o;
    wire 	 write_dp_spr;
+
+   logic store_byte_pulse;
+   logic to_store_byte_o;
+   assign store_byte_o <= to_store_byte_o;
 
    assign 	set_init_addr = spr_cs & spr_addr[1] & spr_write;
    assign 	write_dp_spr = spr_cs & spr_write & ~spr_addr[1];
@@ -42,22 +45,45 @@ module or1200_vlx_top(/*AUTOARG*/
 
    //Here you must generate the stall_cpu_o signal, when high it will stall the cpu,
    //inhibiting it from fetching new instructions.
-   assign 	stall_cpu_o = 0;
+   //assign 	stall_cpu_o = 0;
 
+   // Stall cpu if we are writing to mem in the next cycle
+   // So, stall if store_byte_pulse is high,
+   // or if to_store_byte_o is high when ack_i is low
+   // (this means that the cpu will not be stalled on the last ack)
+   // (basically stall_cpu will be high as to_store_byte_o, but shifted to
+   //  one cc earlier)
+   logic stall_cpu;
+   always_comb begin
+      if (store_byte_pulse) begin
+         stall_cpu = 1'b1;
+      end
+      else if (to_store_byte_o && ~ack_i) begin
+         stall_cpu = 1'b1;
+      end
+      else begin
+         stall_cpu = 1'b0;
+      end
+   end
+   assign stall_cpu_o = stall_cpu;
+
+   // Set spr_dat_o
    assign 	spr_dat_o = spr_addr[1] ? vlx_addr_o : spr_dp_dat_o;
    
    or1200_vlx_su vlx_su
      (
-      .vlx_addr_o	(vlx_addr_o),
-      .dat_o		(dat_o),
-      .last_byte_o	(last_byte),
-      .store_byte_o     (store_byte_o),
       .clk_i		(clk_i),
       .rst_i		(rst_i),
       .ack_i		(ack_i),
+      
       .dat_i		(su_data_in),
+      .store_byte_i     (store_byte_pulse),
       .set_init_addr_i  (set_init_addr),
-      .store_byte_i     (store_reg)
+
+      .vlx_addr_o	(vlx_addr_o),
+      .dat_o		(dat_o),
+      .last_byte_o	(last_byte),
+      .store_byte_o     (to_store_byte_o)
       );
 
    or1200_vlx_ctrl vlx_ctrl 
@@ -71,17 +97,20 @@ module or1200_vlx_top(/*AUTOARG*/
    or1200_vlx_dp vlx_dp
      (
       //Here you must extend the interface.
-      .bit_reg_o(bit_reg),
       .clk_i(clk_i),
       .rst_i(rst_i),
+      .ack_i(ack_i),
+
       .bit_vector_i(dat_i),
       .num_bits_to_write_i(num_bits_to_write_i),
       .spr_addr(spr_addr[0]),
-      .spr_dat_o(spr_dp_dat_o),
-      .spr_dat_i(spr_dat_i),
       .write_dp_spr_i(write_dp_spr),
+      .spr_dat_i(spr_dat_i),
       .set_bit_op_i(set_bit_op_i),
-      .store_reg_o(store_reg)
+
+      .spr_dat_o(spr_dp_dat_o),
+      .bit_reg_o(bit_reg),
+      .store_byte_o(store_byte_pulse)
       );
 
 
