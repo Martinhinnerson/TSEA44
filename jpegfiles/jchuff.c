@@ -143,6 +143,11 @@ static void write_header (int width,int height)
 
 #ifdef HW_INST
    /* Initialize the vlx unit (Phase 1)*/
+   int zero = 0;
+   int start_wr_pos = 23;
+   asm volatile("l.mtspr %0,%1,0x0" : : "r"(0xc002), "r"(buffer + next_buffer));
+   asm volatile("l.mtspr %0,%1,0x0" : : "r"(0xc001), "r"(zero));
+   asm volatile("l.mtspr %0,%1,0x0" : : "r"(0xc000), "r"(start_wr_pos));
 #endif
 
 }
@@ -169,7 +174,8 @@ static void emit_bits (unsigned int code, int size)
 
    startcycle = gettimer();
 #ifdef HW_INST
-   /* Emit bits using the vlx unit (Phase 2)*/   
+   /* Emit bits using the vlx unit (Phase 2)*/
+   asm volatile("l.sd 0x0(%0),%1" : : "r"(code), "r"(size));
 #else
    new_put_buffer = (int) code;
    
@@ -207,6 +213,19 @@ static void flush_bits ()
 {
 #ifdef HW_INST
     /* Flush bits remaining in the vlx buffer (Phase 3) */
+  int size = 7;
+  int code = 0x7f;
+  asm volatile("l.sd 0x0(%0),%1" : : "r"(code), "r"(size));
+  unsigned int last_written_adr;
+  unsigned int buffer_adr = (int) buffer;
+  asm volatile("l.mfspr %0,%1,0x0" : "=r"(last_written_adr) : "r"(0xc002));
+  next_buffer = (last_written_adr - buffer_adr);
+  next_buffer++;
+
+  int zero = 0;
+  int start_wr_pos = 23;
+  asm volatile("l.mtspr %0,%1,0x0" : : "r"(0xc001), "r"(zero));
+  asm volatile("l.mtspr %0,%1,0x0" : : "r"(0xc000), "r"(start_wr_pos));
 #else
    emit_bits( 0x7F, 7);  /* fill any partial byte with ones */
    old_put_buffer = 0; /* and reset bit-buffer to empty */

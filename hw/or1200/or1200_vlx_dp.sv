@@ -5,7 +5,7 @@ module or1200_vlx_dp(/*AUTOARG*/
    spr_dat_o, bit_reg_o, store_byte_o,
    // Inputs
    clk_i, rst_i, bit_vector_i, num_bits_to_write_i, spr_addr, 
-   write_dp_spr_i, spr_dat_i, ack_i
+   write_dp_spr_i, spr_dat_i, ack_i, set_bit_op_i
    );
 
    input clk_i;
@@ -37,14 +37,15 @@ module or1200_vlx_dp(/*AUTOARG*/
    logic 	store_byte;
    
 
+   logic 	to_store_byte_o;
 
    logic [31:0] code;
    logic [4:0] 	size;
-   assign code = bit_vector_i;
+   assign code = bit_vector_i & ((1<<size) - 1);
    assign size = num_bits_to_write_i;
 
    
-   assign combined_code = bit_reg | (code << (bit_reg_wr_pos - size));
+   assign combined_code = bit_reg | (code << (bit_reg_wr_pos - size + 1));
    assign combined_wr_pos = bit_reg_wr_pos - size;
       
 
@@ -115,7 +116,7 @@ module or1200_vlx_dp(/*AUTOARG*/
       if (rst_i) begin
 	 last_data_to_store <= 32'h0;
       end
-      else begin
+      else if (to_store_byte_o) begin
 	 last_data_to_store <= data_to_store;
       end
    end
@@ -128,9 +129,13 @@ module or1200_vlx_dp(/*AUTOARG*/
    always_comb begin
       if (state == IDLE & set_bit_op_i & store_byte) begin
 	 data_to_store = {24'b0, combined_code[23:16]};
-      end else if (ack_i & set_bit_op_i & store_byte) begin
-	 data_to_store = {24'b0, bit_reg[23:16]};
-      end 
+      end else if (ack_i & store_byte) begin
+	 if (insert_00) begin
+	    data_to_store = 32'h0;
+	 end else begin
+	    data_to_store = {24'b0, bit_reg[23:16]};
+	 end
+      end
    end
    
    assign bit_reg_o = data_to_store;
@@ -152,7 +157,7 @@ module or1200_vlx_dp(/*AUTOARG*/
 	    end
 	 end
 	 else begin
-	    if (ack_i & set_bit_op_i & store_byte) begin
+	    if (ack_i & store_byte) begin
 	       if (insert_00) begin
 		  bit_reg <= bit_reg;
 		  bit_reg_wr_pos <= bit_reg_wr_pos;
@@ -162,10 +167,10 @@ module or1200_vlx_dp(/*AUTOARG*/
 	       end
 	    end else if (state == IDLE & store_byte & set_bit_op_i) begin
 	       bit_reg <= {8'b0,combined_code[15:0],8'b0};
-	       bit_reg_wr_pos <= combined_size + 8;
+	       bit_reg_wr_pos <= combined_wr_pos + 8;
 	    end else if (state == IDLE & ~store_byte & set_bit_op_i) begin
 	       bit_reg <= combined_code;
-	       bit_reg_wr_pos <= combined_size;
+	       bit_reg_wr_pos <= combined_wr_pos;
 	    end
 	 end // else: !if(write_dp_spr_i)
       end
@@ -179,21 +184,21 @@ module or1200_vlx_dp(/*AUTOARG*/
       if ((state == IDLE) && store_byte && set_bit_op_i) begin
          // Going from IDLE to STORE_FIRST_BYTE
          // We are outputting new data to store
-         store_byte_o = 1'b1;
+         to_store_byte_o = 1'b1;
       end
       else if ((state != IDLE) && store_byte && ack_i) begin
          // Going from state FIRST, SECOND or THIRD to SECOND, THIRD or FOURTH
          // We are outputting new data to store
-         store_byte_o = 1'b1;
+         to_store_byte_o = 1'b1;
       end
       else begin
          // Stationary in a state, or going to idle
          // We are NOT outputting new data to store
-         store_byte_o = 1'b0;
+         to_store_byte_o = 1'b0;
       end
    end
    
-
+   assign store_byte_o = to_store_byte_o;
    assign spr_dat_o = spr_addr ? bit_reg : {26'b0,bit_reg_wr_pos};
 
 endmodule // or1200_vlx_dp

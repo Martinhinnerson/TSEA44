@@ -32,7 +32,7 @@ module or1200_vlx_su(/*AUTOARG*/
          vlx_addr_o <= 0;
       end
       else if (set_init_addr_i) begin
-         vlx_addr_o <= dat_i;
+         vlx_addr_o <= dat_i - 1;
          // Might need to set this to dat_i - 1 ???
       end
       else if (store_byte_i) begin

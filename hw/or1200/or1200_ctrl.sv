@@ -1031,7 +1031,7 @@ module or1200_ctrl
 	     lsu_op <=  `OR1200_LSUOP_SB;
 	   
 	   // l.sh
-	   `OR1200_O32_SH:
+	   `OR1200_OR32_SH:
 	     lsu_op <=  `OR1200_LSUOP_SH;
 
    `ifdef OR1200_SBIT_IMPL

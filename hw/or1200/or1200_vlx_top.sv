@@ -36,7 +36,7 @@ module or1200_vlx_top(/*AUTOARG*/
 
    logic store_byte_pulse;
    logic to_store_byte_o;
-   assign store_byte_o <= to_store_byte_o;
+   assign store_byte_o = to_store_byte_o;
 
    assign 	set_init_addr = spr_cs & spr_addr[1] & spr_write;
    assign 	write_dp_spr = spr_cs & spr_write & ~spr_addr[1];
